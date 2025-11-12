@@ -1,0 +1,180 @@
+{
+  "name": "Proyecto ejemplo",
+  "tasks": [
+    {
+      "id": "Tkm03kt",
+      "name": "1 - Ductos Rectos Circulares",
+      "start": "2025-09-05",
+      "end": "2026-03-13",
+      "progress": 0,
+      "color": "#bd0505",
+      "children": [
+        {
+          "id": "Ttkk7gi",
+          "name": "1.1 Desarrollo de interfaz de dibujo",
+          "start": "2025-09-05",
+          "end": "2025-09-23",
+          "progress": 0
+        },
+        {
+          "id": "Tv1t2dj",
+          "name": "1.2 Desarrollo de interfaz general de sistema",
+          "start": "2025-09-23",
+          "end": "2025-10-22",
+          "progress": 0,
+          "children": []
+        },
+        {
+          "id": "Tc3oded",
+          "name": "1.3 Desarrollo de interfaz de ingreso de datos",
+          "start": "2025-10-23",
+          "end": "2025-11-13",
+          "progress": 0
+        },
+        {
+          "id": "Tu5lbf3",
+          "name": "1.4 Generación de Planos ductos rectos",
+          "start": "2025-11-14",
+          "end": "2025-12-19",
+          "progress": 0
+        },
+        {
+          "id": "Tpf0vpw",
+          "name": "1.5 Generación de cotización y documentos",
+          "start": "2025-12-20",
+          "end": "2026-01-30",
+          "progress": 0
+        },
+        {
+          "id": "T14www0",
+          "name": "1.6 Interacción con el CAM",
+          "start": "2026-01-31",
+          "end": "2026-03-13",
+          "progress": 0
+        },
+        {
+          "id": "Timmclk",
+          "name": "Versión beta Etapa 1",
+          "start": "2026-03-16",
+          "end": "2026-03-27",
+          "progress": 0,
+          "color": "#1edc4d"
+        }
+      ]
+    },
+    {
+      "id": "Tricvqe",
+      "name": "2 Diseño con Codos, Injertos en eje x,y Circulares",
+      "start": "2026-03-16",
+      "end": "2026-05-29",
+      "progress": 0,
+      "color": "#e70404",
+      "children": [
+        {
+          "id": "T2tcnbm",
+          "name": "2.1 Dibujo del modelo 3D codos e injertos",
+          "start": "2026-03-16",
+          "end": "2026-03-27",
+          "progress": 0
+        },
+        {
+          "id": "Tpwza91",
+          "name": "2.2 Ingreso de Datos",
+          "start": "2026-03-30",
+          "end": "2026-04-09",
+          "progress": 0
+        },
+        {
+          "id": "Tmudg3i",
+          "name": "2.3 Generación de planos",
+          "start": "2026-04-09",
+          "end": "2026-04-30",
+          "progress": 0
+        },
+        {
+          "id": "Txni4vq",
+          "name": "2.4 Generación de cotización y documentos",
+          "start": "2026-05-04",
+          "end": "2026-05-15",
+          "progress": 0
+        },
+        {
+          "id": "T6ay7ez",
+          "name": "2.5 Interacción con el CAM",
+          "start": "2026-05-18",
+          "end": "2026-05-29",
+          "progress": 0
+        },
+        {
+          "id": "Temsg1i",
+          "name": "Versión beta Etapa 2",
+          "start": "2026-06-02",
+          "end": "2026-06-12",
+          "progress": 0,
+          "color": "#11ff00"
+        }
+      ]
+    },
+    {
+      "id": "Tssyp66",
+      "name": "3 Diseño completo de proyectos Circulares",
+      "start": "2026-06-02",
+      "end": "2026-11-10",
+      "progress": 0,
+      "color": "#ff0000",
+      "children": [
+        {
+          "id": "Tlk50ss",
+          "name": "3.1 Dibujo y modelo en todos los ejes",
+          "start": "2026-06-02",
+          "end": "2026-06-18",
+          "progress": 0
+        },
+        {
+          "id": "T6gpqnr",
+          "name": "3.2 Validación de datos",
+          "start": "2026-06-19",
+          "end": "2026-07-08",
+          "progress": 0
+        },
+        {
+          "id": "Trhf5rb",
+          "name": "3.3 Generación de planos ",
+          "start": "2026-07-09",
+          "end": "2026-09-11",
+          "progress": 0
+        },
+        {
+          "id": "Ttxuoru",
+          "name": "3.4 Generación de cotizaciones y documentos",
+          "start": "2026-09-12",
+          "end": "2026-10-12",
+          "progress": 0
+        },
+        {
+          "id": "Tz5xa81",
+          "name": "3.5 Interacción con el CAM",
+          "start": "2026-10-12",
+          "end": "2026-11-10",
+          "progress": 0
+        },
+        {
+          "id": "Tfodoh0",
+          "name": "Versión Beta completa Circular",
+          "start": "2026-11-11",
+          "end": "2026-12-04",
+          "progress": 0,
+          "color": "#11ff00"
+        }
+      ]
+    },
+    {
+      "id": "Tyiulp5",
+      "name": "4 Diseño de Elipticos, Semicirculares, Esferas, Ajustes Francia con CAM",
+      "start": "2026-12-04",
+      "end": "2027-09-24",
+      "progress": 0,
+      "color": "#000000"
+    }
+  ]
+}

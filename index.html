@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Menú de Archivos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root{
+      --accent:#007AFF;
+      --accent-2:#0A84FF;
+      --ink:#1D1D1F;
+      --muted:#8E8E93;
+      --grid:#E5E5EA;
+      --bg:#F2F2F7;
+    }
+    
+    html, body { 
+      height: 100%; 
+      margin: 0;
+      color: var(--ink); 
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      font-size: 14px;
+      background: linear-gradient(135deg, #a0c4ff, #c2e9fb, #74a0f1, #e0f2f7, #a0c4ff);
+      background-size: 400% 400%; 
+      animation: movingBackground 20s ease infinite alternate; 
+      background-attachment: fixed; 
+    }
+
+    @keyframes movingBackground {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .menu-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .menu-card {
+      background: rgba(255, 255, 255, 0.45); 
+      backdrop-filter: blur(18px); 
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      border-radius: 20px; 
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* --- CAMBIO: Estilo para la imagen/logo --- */
+/* ... (todo tu CSS anterior) ... */
+
+.menu-logo {
+  display: block; 
+  width: 300px;  
+  height: 300px; 
+  margin: 0 auto 1.5rem auto; 
+  border-radius: 50%; 
+  
+  /* CAMBIO AQUÍ: 'cover' recorta, 'contain' ajusta dentro */
+  object-fit: contain; 
+  
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+  
+  /* Opcional: añade un fondo si tu imagen es PNG transparente */
+  /* background-color: rgba(255, 255, 255, 0.5); */
+}
+    /* --- FIN DEL CAMBIO --- */
+
+    .menu-card h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--ink);
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 2rem;
+    }
+
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem; 
+    }
+
+    .btn { 
+      display: block; 
+      text-decoration: none;
+      text-align: center;
+      position: relative; 
+      border: none;
+      border-radius: 12px; 
+      padding: 0.8rem 1.5rem; 
+      font-weight: 500; 
+      font-size: 1rem; 
+      color: var(--ink); 
+      background: rgba(255, 255, 255, 0.9); 
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03); 
+      transition: all 0.2s ease-out;
+      cursor: pointer;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px); 
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05); 
+      background: rgba(255, 255, 255, 1);
+    }
+
+    .btn:active {
+      transform: translateY(0); 
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    }
+
+    .btn-primary { 
+      background:var(--accent); 
+      color:white; 
+      box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3), 0 0 0 1px rgba(0, 122, 255, 0.1);
+      text-shadow: 0 1px 1px rgba(0,0,0,0.1); 
+    }
+    .btn-primary:hover { 
+      background:var(--accent-2); 
+      box-shadow: 0 5px 12px rgba(0, 122, 255, 0.35), 0 0 0 1px rgba(0, 122, 255, 0.2);
+    }
+    .btn-primary:active {
+      background: var(--accent);
+      box-shadow: 0 1px 3px rgba(0, 122, 255, 0.2), 0 0 0 1px rgba(0, 122, 255, 0.1);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="menu-wrapper">
+    <div class="menu-card">
+      
+      <img src="DTI.png" alt="Logo" class="menu-logo">
+      <h2>Mejora continua</h2>
+      
+      <div class="button-container">
+        <a href="Time Line.html" class="btn btn-primary">
+          📄 Softduct Schedule
+        </a>
+      
+
+        <a href="PLANIFICADOR 3000.html" class="btn">
+          📄 Production schedule
+        </a>
+        
+        <a href="archivo_2.html" class="btn">
+          📈 Bitacora de Mejora
+        </a>
+        
+        <a href="archivo_3.html" class="btn">
+          📊 Documentos de Referencia
+        </a>
+        
+        <a href="configuracion.html" class="btn">
+          ⚙️ Configuración
+        </a>
+      </div>
+      
+    </div>
+  </div>
+
+</body>
+</html>

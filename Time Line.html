@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Softduct Designer Schedule</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      /* Colores más suaves y limpios, inspirados en Apple */
+      --accent:#007AFF;              /* Azul primario de Apple */
+      --accent-2:#0A84FF;            /* Azul más brillante */
+      --ink:#1D1D1F;                 /* Gris oscuro casi negro */
+      --muted:#8E8E93;               /* Gris medio */
+      --grid:#E5E5EA;                 /* Gris muy claro para la cuadrícula */
+      --grid-strong:#D1D1D6;         /* Gris claro para líneas fuertes */
+      --bg:#F2F2F7;                   /* Fondo muy claro */
+      --today:#FFD60A;               /* Amarillo sutil */
+    }
+    
+    html, body { 
+      height: 100%; 
+      color: var(--ink); 
+      /* Usamos Inter como fuente principal */
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+      font-size: 14px;
+
+      background: linear-gradient(135deg, #a0c4ff, #c2e9fb, #74a0f1, #e0f2f7, #a0c4ff);
+      background-size: 400% 400%; 
+      animation: movingBackground 20s ease infinite alternate; /* Animación más lenta */
+      background-attachment: fixed; 
+    }
+
+    @keyframes movingBackground {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    /* Paneles de "vidrio" mejorados para un look más Apple */
+    .panel-glass {
+      background: rgba(255, 255, 255, 0.7); /* Menos opacidad, más translucidez */
+      backdrop-filter: blur(12px); /* Blur ligeramente más fuerte */
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05), /* Sombra más sutil */
+                  0 0px 1px rgba(0, 0, 0, 0.05); /* Pequeña sombra para los bordes */
+      border-radius: 12px; /* Bordes suaves */
+    }
+
+    .topbar { 
+      position: sticky; top:0; z-index:50; 
+      border-bottom: none; 
+      overflow: hidden; 
+      padding: 10px 20px; /* Espaciado ajustado */
+    }
+    /* Estilo para los paneles (topbar, tree, axis, details) */
+    .topbar, .tree, .axis, .details {
+      @apply panel-glass;
+      background: rgba(255, 255, 255, 0.6); /* Un poco más de transparencia para estos elementos */
+      backdrop-filter: blur(18px); /* Blur un poco más fuerte */
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 
+                  0 0 0 1px rgba(0, 0, 0, 0.03); /* Sombra difusa y un borde muy sutil */
+    }
+    .topbar {
+      border-bottom: none; 
+      border-radius: 0 0 12px 12px; /* Solo redondeado en la parte inferior para la topbar */
+    }
+    
+    .board { display:grid; grid-template-columns: 360px 1fr; height: calc(100vh - 64px); } /* Altura ajustada */
+
+    .tree { 
+      overflow:auto; 
+      border-right:none; 
+      border-radius: 12px 0 0 12px; /* Redondeado solo a la izquierda */
+    }
+    .row { 
+      display:flex; align-items:center; height:36px; gap:8px; padding:0 12px; 
+      border-bottom:1px solid var(--grid); /* Borde más sutil */
+      background: transparent; 
+      transition: background 0.1s ease;
+    }
+    .row:hover { background: rgba(255, 250, 250, 0.5); } /* Hover más suave */
+    
+    .row-etapa { border-bottom: 1px solid var(--grid-strong); }
+    .row-etapa .name { font-weight: 600; color: var(--ink); }
+    .row-subetapa { border-bottom: 1px dashed var(--grid); }
+    .row-subetapa .name { color: var(--muted); }
+
+    .twisty { width:18px; height:18px; display:inline-grid; place-items:center; border-radius:4px; cursor:pointer; } /* Menos redondeado */
+    .twisty:hover { background:rgba(0,0,0,0.05); } /* Hover más sutil */
+    .dot { width:10px; height:10px; border-radius:999px; background:var(--accent); opacity:1; } /* Opacidad completa */
+    .name { flex:1; min-width: 0; }
+    .name[contenteditable="true"] { outline:none; border-bottom:1px dashed transparent; }
+    .name[contenteditable="true"]:focus { border-color:var(--grid-strong); } /* Foco más sutil */
+
+    /* --- CAMBIO: Añadido estilo para el label de progreso --- */
+    .progress-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-left: 8px; /* Espacio entre el nombre y el porcentaje */
+      white-space: nowrap;
+    }
+    /* --- FIN DEL CAMBIO --- */
+
+    .timeline-wrap { 
+      position:relative; 
+      overflow:auto; 
+      background: rgba(255, 255, 255, 0.1); 
+      border-radius: 0 12px 12px 0; /* Redondeado solo a la derecha */
+    }
+    .timeline { position:relative; }
+    
+    .axis { 
+      position:sticky; top:0; z-index:20; 
+      border-bottom:1px solid var(--grid-strong); 
+    }
+    .axis .tick { position:absolute; top:0; bottom:0; border-left:1px solid var(--grid); font-size:11px; color:var(--muted); display:flex; align-items:center; padding-left:4px; }
+    .axis .band { position:absolute; top:0; bottom:0; background:rgba(0,0,0,.01); border-left:1px solid var(--grid); } /* Banda más sutil */ 
+
+    .gridline { position:absolute; left:0; right:0; height:36px; border-bottom:1px solid var(--grid); } /* Borde de cuadrícula más suave */
+
+    /* Barras de tareas con estilo Apple */
+    .bar { 
+      position:absolute; 
+      height:22px; /* Ligeramente más altas */
+      border-radius:8px; /* Bordes suaves */
+      cursor:grab; 
+      overflow: hidden; 
+      display: flex; 
+      align-items: center; 
+      z-index: 1; 
+
+      background: transparent; 
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05), /* Sombra sutil para elevación */
+                  0 0 0 1px rgba(0, 0, 0, 0.03); /* Borde muy fino */
+      transition: all 0.2s ease-out; 
+    }
+    .bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 8px; /* Bordes suaves */
+      z-index: 1;
+      backdrop-filter: blur(6px); /* Blur suave para el efecto de vidrio */
+      -webkit-backdrop-filter: blur(6px);
+      background: rgba(var(--bar-r, 0), var(--bar-g, 122), var(--bar-b, 255), 0.5); /* Color base con opacidad de vidrio */
+    }
+
+    .bar:hover { 
+      transform: translateY(-1px) scale(1.005); 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08),
+                  0 0 0 1px rgba(0,0,0,0.04); /* Sombra y borde al hover */
+    }
+    .bar:active { cursor:grabbing; }
+    .bar .label { 
+      position: relative; 
+      left:8px; 
+      font-size:12px; /* Fuente ligeramente más grande */
+      font-weight: 500; /* Peso de fuente medio */
+      color:white; white-space:nowrap; 
+      text-shadow:0 0px 2px rgba(0,0,0,.15); /* Sombra de texto muy suave */
+      pointer-events:none; 
+      z-index: 3; 
+    }
+    .handle { 
+      position:absolute; top:0; bottom:0; width:8px; border-radius:4px; background:rgba(255,255,255,.2); /* Handles más integrados */
+      cursor:ew-resize; z-index: 4; 
+    }
+    .handle.start { left:0; } /* Handles al ras del borde */
+    .handle.end { right:0; }
+    .progress { 
+      position:absolute; left:0; top:0; bottom:0; 
+      background: rgba(255,255,255,.25); /* Progreso como una capa de vidrio blanca y opaca */
+      border-radius:8px 0 0 8px; 
+      pointer-events:none; 
+      z-index: 2; 
+    }
+    .progress.progress-round-right { /* Clase para redondear la derecha si el progreso llega al 100% */
+      border-radius: 8px;
+    }
+
+    .weekend { position:absolute; top:0; bottom:0; background:rgba(0,0,0,.01); } /* Fines de semana más sutiles */
+    .today-line { position:absolute; top:0; bottom:0; width:2px; background:var(--today); box-shadow:0 0 0 1px rgba(255,214,10,.25); z-index:10; }
+
+    .details { 
+      border-top:none; 
+      padding:16px; /* Más padding */
+      border-radius: 0 12px 12px 0; /* Redondeado solo a la derecha */
+    }
+    .kbd { border:1px solid #d1d1d6; border-bottom-width:2px; padding:1px 6px; border-radius:6px; font-family: 'Inter', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    /* Inputs estilo Apple */
+    .in { 
+      border: 1px solid var(--grid-strong); /* Borde más definido */
+      background: rgba(255, 255, 255, 0.8); /* Fondo más opaco y blanco */
+      border-radius: 8px; padding:8px 12px; /* Más padding y redondeo */
+      backdrop-filter: blur(5px); /* Un poco de blur */
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); /* Sombra interna sutil */
+      color: var(--ink);
+    }
+    .in:focus {
+      outline: none;
+      border-color: var(--accent); /* Borde azul al foco */
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2); /* Anillo de foco azul suave */
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    /* Botones estilo Apple (sin SVG filter) */
+    .btn { 
+      position: relative; 
+      border: none;
+      border-radius: 10px; /* Bordes suaves */
+      padding: 8px 14px; /* Más padding */
+      display: inline-flex; 
+      align-items: center; 
+      gap: 8px; 
+      
+      font-weight: 500; /* Peso de fuente medio */
+      font-size: 13px; /* Tamaño de fuente ligeramente más pequeño */
+      color: var(--ink); 
+      background: rgba(255, 255, 255, 0.85); /* Fondo blanco con transparencia */
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03); /* Sombra sutil y borde fino */
+      transition: all 0.2s ease-out;
+      cursor: pointer;
+    }
+    
+    .btn-content {
+      z-index: 1; /* El contenido no necesita un z-index tan alto ahora */
+      position: relative; 
+    }
+    
+    .btn:hover {
+      transform: translateY(-1px); /* Ligera elevación al hover */
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05); /* Sombra más pronunciada al hover */
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    .btn:active {
+      transform: translateY(0); /* Vuelve a la posición normal al clickear */
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    }
+
+    .btn-primary { 
+      background:var(--accent); 
+      color:white; 
+      box-shadow: 0 1px 3px rgba(0, 122, 255, 0.2), 0 0 0 1px rgba(0, 122, 255, 0.1);
+      text-shadow: 0 1px 1px rgba(0,0,0,0.1); /* Sombra de texto suave */
+    }
+    .btn-primary .btn-content {
+      color: white;
+    }
+    .btn-primary:hover { 
+      background:var(--accent-2); 
+      box-shadow: 0 3px 8px rgba(0, 122, 255, 0.3), 0 0 0 1px rgba(0, 122, 255, 0.2);
+    }
+    .btn-primary:active {
+      background: var(--accent);
+      box-shadow: 0 1px 3px rgba(0, 122, 255, 0.1), 0 0 0 1px rgba(0, 122, 255, 0.05);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar px-4 py-3 flex items-center gap-2">
+    <div class="text-lg font-semibold">Softduct Designer Schedule</div>
+    <div class="ml-auto flex items-center gap-2">
+      <button id="addRoot" class="btn" title="Nueva etapa (raíz)"><span class="btn-content">➕ Etapa</span></button>
+      <button id="addChild" class="btn" title="Nueva sub-etapa"><span class="btn-content">↳ Sub-etapa</span></button>
+      <button id="deleteTask" class="btn" title="Eliminar"><span class="btn-content">🗑️</span></button>
+      <div class="mx-2 w-px h-6 bg-slate-200" style="background-color: var(--grid-strong);"></div>
+      <label class="text-sm" style="color:var(--muted)">Escala</label>
+      <select id="scale" class="in">
+        <option value="day">Días</option>
+        <option value="week">Semanas</option>
+        <option value="month">Meses</option>
+      </select>
+      <label class="text-sm flex items-center gap-1" style="color:var(--muted)"><input id="autoCascade" type="checkbox" class="mr-1"> Auto-desplazar (FS)</label>
+      <button id="todayBtn" class="btn" title="Ir a hoy"><span class="btn-content">📅 Hoy</span></button>
+      <div class="mx-2 w-px h-6 bg-slate-200" style="background-color: var(--grid-strong);"></div>
+      <button id="exportBtn" class="btn" title="Exportar JSON"><span class="btn-content">⬇️ Exportar</span></button>
+      <label class="btn" for="importInput" title="Importar JSON"><span class="btn-content">⬆️ Importar</span></label>
+      <input id="importInput" type="file" accept="application/json" class="hidden" />
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="tree" id="tree"></div>
+    <div class="timeline-wrap" id="timelineWrap">
+      <div class="axis" id="axis" style="height:40px"></div>
+      <div class="timeline" id="timeline" style="margin-top:0"></div>
+      <div class="details" id="details"></div>
+    </div>
+  </div>
+
+<script>
+(async function(){ // Función asíncrona principal
+
+  // ======= Estado =======
+  const state = { pxPerDay: 24, rowH: 36, scale: 'day', autoCascade: true, rows: [], selectedId: null, collapsed: {}, project: null, timelineStart: null, timelineEnd: null, };
+  const demo = {
+    name: "Proyecto ejemplo",
+    tasks: [
+      { id: id(), name: "Planeación", start: todayOffset(0), end: todayOffset(6), progress: 35, color: "#007AFF", children:[ 
+        { id: id(), name: "Alcance", start: todayOffset(0), end: todayOffset(2), progress: 60 },
+        { id: id(), name: "WBS (etapas y sub-etapas)", start: todayOffset(1), end: todayOffset(4), progress: 40 },
+      ]},
+      { id: id(), name: "Ejecución", start: todayOffset(7), end: todayOffset(20), progress: 20, color: "#FF9500", children:[ 
+        { id: id(), name: "Etapa 1", start: todayOffset(7), end: todayOffset(12), progress: 10, children:[
+          { id: id(), name: "Sub-etapa 1.1", start: todayOffset(7), end: todayOffset(9), progress: 30 },
+          { id: id(), name: "Sub-etapa 1.2", start: todayOffset(10), end: todayOffset(12), progress: 0 },
+        ]},
+        { id: id(), name: "Etapa 2", start: todayOffset(13), end: todayOffset(20), progress: 5 },
+      ]},
+      { id: id(), name: "Cierre", start: todayOffset(21), end: todayOffset(25), progress: 0, color: "#34C759" } 
+    ]
+  };
+
+  // --- FUNCIÓN PARA CARGAR EL JSON ---
+  async function cargarProyectoDesdeArchivo() {
+    try {
+      // 1. Intenta cargar 'project.json'
+      const response = await fetch('project.json'); 
+      if (!response.ok) {
+        // 2. Si falla (ej. 404), usa la demo
+        console.warn('No se encontró "project.json". Cargando datos de demo.');
+        return demo; 
+      }
+      // 3. Si tiene éxito, usa los datos del JSON
+      const data = await response.json();
+      console.log('Proyecto cargado desde "project.json"');
+      return data;
+    } catch (error) {
+      // 4. Si hay un error de red, usa la demo
+      console.error('Error al cargar "project.json":', error);
+      console.warn('Cargando datos de demo como alternativa.');
+      return demo;
+    }
+  }
+
+  // --- CARGA INICIAL DEL PROYECTO ---
+  state.project = await cargarProyectoDesdeArchivo(); 
+
+
+  // ======= Utilidades de fecha =======
+  function d(y,m,d){ const dt = new Date(Date.UTC(y,m,d)); return dt; }
+  function parseDate(str){ const [Y,M,D] = str.split('-').map(Number); return d(Y, M-1, D); }
+  function fmtDate(dt){ return dt.toISOString().slice(0,10); }
+  function addDays(dt, n){ const c = new Date(dt); c.setUTCDate(c.getUTCDate()+n); return c; }
+  function diffDays(a,b){ const ms = (Date.UTC(b.getUTCFullYear(),b.getUTCMonth(),b.getUTCDate()) - Date.UTC(a.getUTCFullYear(),a.getUTCMonth(),a.getUTCDate())); return Math.round(ms/86400000); }
+  function today(){ const t = new Date(); return d(t.getFullYear(), t.getMonth(), t.getDate()); }
+  function todayOffset(n){ return fmtDate(addDays(today(), n)); }
+  function id(){ return 'T'+Math.random().toString(36).slice(2,8); }
+  function flatten(tasks, depth=0, acc=[]) {
+    for (const t of tasks){
+      acc.push({ task:t, depth });
+      if (!state.collapsed[t.id] && t.children && t.children.length){
+        flatten(t.children, depth+1, acc);
+      }
+    }
+    return acc;
+  }
+  function computeRange(){
+    let min = null, max = null;
+    function walk(tasks){
+      for(const t of tasks){
+        const s = parseDate(t.start), e = parseDate(t.end);
+        if (!min || s < min) min = s;
+        if (!max || e > max) max = e;
+        if (t.children) walk(t.children);
+      }
+    }
+    walk(state.project.tasks);
+    min = addDays(min, -3); max = addDays(max, 7);
+    state.timelineStart = min; state.timelineEnd = max;
+  }
+  function xForDate(dt){ return diffDays(state.timelineStart, dt) * state.pxPerDay; }
+  function wForTask(t){
+    const s = parseDate(t.start), e = parseDate(t.end);
+    const days = Math.max(1, diffDays(s, e)+1);
+    return days * state.pxPerDay;
+  }
+  function pxPerDayForScale(scale){
+    switch(scale){
+      case 'day': return 24; case 'week': return 12; case 'month': return 4;
+      default: return 24;
+    }
+  }
+  // Función para convertir HEX a RGB
+  function hexToRgb(hex) {
+    let r=0, g=0, b=0;
+    if (hex.length === 4) {
+      r = parseInt(hex[1]+hex[1], 16);
+      g = parseInt(hex[2]+hex[2], 16);
+      b = parseInt(hex[3]+hex[3], 16);
+    } else if (hex.length === 7) {
+      r = parseInt(hex.slice(1, 3), 16);
+      g = parseInt(hex.slice(3, 5), 16);
+      b = parseInt(hex.slice(5, 7), 16);
+    }
+    return `${r}, ${g}, ${b}`;
+  }
+
+
+  // ======= Render Árbol =======
+  function renderTree(){
+    state.rows = flatten(state.project.tasks);
+    const tree = document.getElementById('tree');
+    let html = '';
+    state.rows.forEach((r, i)=>{
+      const t = r.task;
+      const isParent = t.children && t.children.length;
+      const collapsed = !!state.collapsed[t.id];
+      const selected = state.selectedId === t.id;
+      let rowClasses = 'row';
+      if (selected) rowClasses += ' bg-blue-50'; // Color de selección más suave
+      if (r.depth === 0) {
+        rowClasses += ' row-etapa';
+      } else {
+        rowClasses += ' row-subetapa';
+      }
+      
+      // --- CAMBIO: Añadido el div de progreso ---
+      const progress = t.progress || 0;
+      let progressLabel = `<div class="progress-label">${progress}%</div>`;
+      // Si solo lo quieres para sub-etapas, descomenta la siguiente línea:
+      // if (r.depth === 0) progressLabel = ''; 
+      
+      html += `
+        <div class="${rowClasses}" data-id="${t.id}" style="padding-left:${12 + r.depth*16}px">
+          <div class="twisty" data-twist="${t.id}" title="${collapsed?'Expandir':'Colapsar'}">
+            ${isParent ? (collapsed ? '▶' : '▼') : ''}
+          </div>
+          <div class="dot" style="background:${t.color||'var(--accent)'}"></div>
+          <div class="name flex-1 truncate" contenteditable="true" spellcheck="false" data-editname="${t.id}">${t.name}</div>
+          
+          ${progressLabel}
+
+          <div class="text-xs text-slate-500 whitespace-nowrap ml-2" style="color:var(--muted);">${t.start} → ${t.end}</div>
+        </div>`;
+      // --- FIN DEL CAMBIO ---
+    });
+    tree.innerHTML = html;
+    tree.querySelectorAll('[data-twist]').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        const id = e.currentTarget.getAttribute('data-twist');
+        state.collapsed[id] = !state.collapsed[id];
+        render();
+      });
+    });
+    tree.querySelectorAll('.row').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        const id = el.getAttribute('data-id');
+        state.selectedId = id;
+        renderTimelineOnly();
+        renderTree();
+        renderDetails();
+      });
+    });
+    tree.querySelectorAll('[data-editname]').forEach(el=>{
+      el.addEventListener('blur', (e)=>{
+        const id = e.currentTarget.getAttribute('data-editname');
+        const t = findTaskById(id);
+        if (t){ t.name = e.currentTarget.textContent.trim() || t.name; save(); renderTimelineOnly(); }
+      });
+      el.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ev.preventDefault(); ev.currentTarget.blur();} })
+    });
+  }
+
+  // ======= Render Timeline (Axis) =======
+  function renderAxis(){
+    const axis = document.getElementById('axis');
+    const start = state.timelineStart;
+    const end = state.timelineEnd;
+    const days = Math.max(1, diffDays(start, end)+1);
+    const width = days * state.pxPerDay;
+    axis.style.width = width + 'px';
+    let html = '';
+    for(let i=0;i<days;i++){
+      const dt = addDays(start, i);
+      const dow = dt.getUTCDay();
+      if (dow === 0 || dow === 6) {
+        html += `<div class="band" style="left:${i*state.pxPerDay}px; width:${state.pxPerDay}px; background:rgba(0,0,0,.01)"></div>`;
+      }
+    }
+    const formatter = new Intl.DateTimeFormat('es-MX', { day:'2-digit', month:'short' });
+    if (state.scale==='day'){
+      for(let i=0;i<days;i++){
+        const dt = addDays(start, i);
+        html += `<div class="tick" style="left:${i*state.pxPerDay}px; width:${state.pxPerDay}px">${formatter.format(dt)}</div>`;
+      }
+    } else if (state.scale==='week'){
+      let i = 0;
+      while(i<days){
+        const dt = addDays(start, i);
+        const label = new Intl.DateTimeFormat('es-MX',{ day:'2-digit', month:'short'}).format(dt);
+        html += `<div class="tick" style="left:${i*state.pxPerDay}px; width:${7*state.pxPerDay}px; font-weight:600">Sem ${label}</div>`;
+        i += 7;
+      }
+    } else {
+      let cursor = new Date(start); cursor.setUTCDate(1);
+      while(cursor <= end){
+        const monthStart = new Date(cursor);
+        const next = d(cursor.getUTCFullYear(), cursor.getUTCMonth()+1, 1);
+        const left = xForDate(monthStart);
+        const widthM = Math.max(1, diffDays(monthStart, next)) * state.pxPerDay;
+        const label = new Intl.DateTimeFormat('es-MX',{ month:'long', year:'numeric'}).format(monthStart);
+        html += `<div class="tick" style="left:${left}px; width:${widthM}px; font-weight:600;">${label}</div>`;
+        cursor = next;
+      }
+    }
+    const t = today();
+    if (t >= start && t <= end){
+      const x = xForDate(t);
+      html += `<div class="today-line" style="left:${x}px"></div>`;
+    }
+    axis.innerHTML = html;
+  }
+
+  // ======= Render Timeline (Barras) =======
+  function renderTimelineOnly(){
+    const tl = document.getElementById('timeline');
+    const start = state.timelineStart;
+    const end = state.timelineEnd;
+    const days = Math.max(1, diffDays(start, end)+1);
+    const width = days * state.pxPerDay;
+    const height = state.rows.length * state.rowH;
+    tl.style.height = height + 'px';
+    tl.style.width = width + 'px';
+    let html = '';
+    for(let r=0;r<state.rows.length;r++){
+      html += `<div class="gridline" style="top:${r*state.rowH}px"></div>`;
+    }
+    state.rows.forEach((r, i)=>{
+      const t = r.task;
+      const s = parseDate(t.start), e = parseDate(t.end);
+      const left = xForDate(s);
+      const w = wForTask(t);
+      const selected = state.selectedId === t.id;
+      const barColorRgb = hexToRgb(t.color || '#007AFF'); 
+      const progressRoundClass = (t.progress || 0) >= 100 ? 'progress-round-right' : '';
+      html += `
+        <div class="bar ${selected?'ring-2 ring-blue-300':''}"
+             data-id="${t.id}"
+             style="top:${i*state.rowH + 7}px; left:${left}px; width:${w}px; 
+                    --bar-r:${barColorRgb.split(',')[0].trim()}; 
+                    --bar-g:${barColorRgb.split(',')[1].trim()}; 
+                    --bar-b:${barColorRgb.split(',')[2].trim()};">
+          <div class="handle start" data-handle="start" data-id="${t.id}"></div>
+          <div class="handle end" data-handle="end" data-id="${t.id}"></div>
+          <div class="progress ${progressRoundClass}" style="width:${Math.max(0, Math.min(100, t.progress||0))}%"></div>
+          <div class="label">${t.name}</div>
+        </div>`;
+    });
+    tl.innerHTML = html;
+    tl.querySelectorAll('.bar').forEach(el=>{
+      el.addEventListener('mousedown', startDragMove);
+    });
+    tl.querySelectorAll('.handle').forEach(el=>{
+      el.addEventListener('mousedown', startDragResize);
+    });
+  }
+
+  // ======= Render Details =======
+  function renderDetails(){
+    const box = document.getElementById('details');
+    const t = findTaskById(state.selectedId);
+    if (!t){ box.innerHTML = `<div class="text-sm" style="color:var(--muted)">Selecciona una tarea para editar detalles.</div>`; return; }
+    box.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="md:col-span-2">
+          <label class="text-xs" style="color:var(--muted)">Nombre</label>
+          <input id="d-name" class="in w-full" type="text" value="${t.name}">
+        </div>
+        <div>
+          <label class="text-xs" style="color:var(--muted)">Inicio</label>
+          <input id="d-start" class="in w-full" type="date" value="${t.start}">
+        </div>
+        <div>
+          <label class="text-xs" style="color:var(--muted)">Fin</label>
+          <input id="d-end" class="in w-full" type="date" value="${t.end}">
+        </div>
+        <div>
+          <label class="text-xs" style="color:var(--muted)">Progreso</label>
+          <input id="d-progress" class="w-full" type="range" min="0" max="100" value="${t.progress||0}" />
+          <div class="text-xs" style="color:var(--muted)"><span id="progressVal">${t.progress||0}%</span></div>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-xs" style="color:var(--muted)">Color</label>
+          <input id="d-color" class="in w-full" type="color" value="${t.color||'#007AFF'}">
+        </div>
+        <div class="md:col-span-3 flex items-end justify-end gap-2">
+          <button id="snapWeek" class="btn" title="Alinear a semana"><span class="btn-content">📌 Alinear a semana</span></button>
+          <button id="stretchToChildren" class="btn" title="Ajustar al rango de sub-etapas"><span class="btn-content">↔️ Ajustar a sub-etapas</span></button>
+        </div>
+      </div>`;
+    box.querySelector('#d-name').addEventListener('input', (e)=>{ t.name = e.target.value; save(); renderTree(); renderTimelineOnly(); });
+    box.querySelector('#d-start').addEventListener('change', (e)=>{ t.start = e.target.value; ensureOrder(t); save(); render(); });
+    box.querySelector('#d-end').addEventListener('change', (e)=>{
+      const prevEnd = parseDate(t.end);
+      t.end = e.target.value; ensureOrder(t);
+      if (state.autoCascade && parseDate(t.end) > prevEnd){ cascadeFromTask(t); }
+      save(); render();
+    });
+    box.querySelector('#d-progress').addEventListener('input', (e)=>{
+      t.progress = +e.target.value; 
+      box.querySelector('#progressVal').textContent = `${t.progress}%`; 
+      save(); 
+      renderTree(); // <-- CAMBIO: Añadido para que el árbol se actualice en tiempo real
+      renderTimelineOnly(); 
+    });
+    box.querySelector('#d-color').addEventListener('change', (e)=>{ t.color = e.target.value; save(); renderTimelineOnly(); });
+    box.querySelector('#snapWeek').addEventListener('click', ()=>{
+      const prevEnd = parseDate(t.end);
+      snapToWeek(t);
+      if (state.autoCascade && parseDate(t.end) > prevEnd){ cascadeFromTask(t); }
+      save(); render();
+    });
+    box.querySelector('#stretchToChildren').addEventListener('click', ()=>{ stretchToChildren(t); save(); render(); });
+  }
+
+  // ======= Funciones de Lógica =======
+  function snapToWeek(t){
+    const s = parseDate(t.start), e = parseDate(t.end);
+    const monday = addDays(s, (1 - (s.getUTCDay()||7)));
+    const friday = addDays(e, (5 - (e.getUTCDay()||7)));
+    t.start = fmtDate(monday);
+    t.end = fmtDate(friday);
+  }
+  function stretchToChildren(t){
+    if (!t.children || !t.children.length) return;
+    let sMin=null, eMax=null;
+    const walk=(list)=>{ for(const c of list){ const s=parseDate(c.start), e=parseDate(c.end); if(!sMin||s<sMin)sMin=s; if(!eMax||e>eMax)eMax=e; if(c.children) walk(c.children);} };
+    walk(t.children);
+    if (sMin && eMax){ t.start = fmtDate(sMin); t.end = fmtDate(eMax); }
+  }
+  function ensureOrder(t){
+    const s = parseDate(t.start), e = parseDate(t.end);
+    if (e < s) t.end = t.start;
+  }
+  function shade(hex, percent){
+    const f = parseInt(hex.slice(1),16);
+    const t = percent<0?0:255;
+    const p = Math.abs(percent)/100;
+    const R = f>>16, G = f>>8&0x00FF, B = f&0x0000FF;
+    const n = (x)=>Math.round((t - x)*p + x);
+    return `#${(0x1000000 + (n(R)<<16) + (n(G)<<8) + n(B)).toString(16).slice(1)}`;
+  }
+  function shiftSubtree(node, deltaDays){
+    if(!deltaDays) return;
+    node.start = fmtDate(addDays(parseDate(node.start), deltaDays));
+    node.end   = fmtDate(addDays(parseDate(node.end),   deltaDays));
+    if (node.children) node.children.forEach(ch=>shiftSubtree(ch, deltaDays));
+  }
+  function shiftChildrenSubtree(node, deltaDays){
+    if(!deltaDays || !node.children) return;
+    node.children.forEach(ch=>shiftSubtree(ch, deltaDays));
+  }
+  function cascadeFromTask(task){
+    const parent = findParentOf(task.id);
+    const list = parent ? (parent.children||[]) : state.project.tasks;
+    const idx = list.findIndex(x=>x.id===task.id);
+    if (idx < 0) return;
+    let prevEnd = parseDate(task.end);
+    for (let i=idx+1;i<list.length;i++){
+      const u = list[i];
+      const uStart = parseDate(u.start);
+      const minStart = addDays(prevEnd, 1);
+      if (uStart < minStart){
+        const delta = diffDays(uStart, minStart);
+        shiftSubtree(u, delta);
+      }
+      prevEnd = parseDate(u.end);
+    }
+  }
+  function findTaskById(id){ if(!id) return null; let found=null; const walk=(list)=>{ for(const t of list){ if(t.id===id){found=t;return;} if(t.children) walk(t.children); if(found) return; } }; walk(state.project.tasks); return found; }
+  function findParentOf(id, list=state.project.tasks, parent=null){ for(const t of list){ if(t.id===id) return parent; if(t.children){ const r = findParentOf(id, t.children, t); if(r) return r; } } return null; }
+  
+  // --- Botones de acción ---
+  const addRootBtn = document.getElementById('addRoot');
+  const addChildBtn = document.getElementById('addChild');
+  const deleteBtn = document.getElementById('deleteTask');
+  const scaleSel = document.getElementById('scale');
+  const todayBtn = document.getElementById('todayBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const importInput = document.getElementById('importInput');
+  if (addRootBtn) addRootBtn.addEventListener('click', ()=>{
+    const t = { id:id(), name:'Nueva etapa', start: fmtDate(today()), end: fmtDate(addDays(today(), 3)), progress:0 };
+    state.project.tasks.push(t); state.selectedId = t.id; save(); render();
+  });
+  if (addChildBtn) addChildBtn.addEventListener('click', ()=>{
+    const sel = findTaskById(state.selectedId);
+    if (!sel){ alert('Selecciona una etapa para agregar una sub-etapa.'); return; }
+    sel.children = sel.children || [];
+    const t = { id:id(), name:'Nueva sub-etapa', start: sel.start, end: sel.end, progress:0 };
+    sel.children.push(t); state.collapsed[sel.id] = false; state.selectedId = t.id; save(); render();
+  });
+  if (deleteBtn) deleteBtn.addEventListener('click', ()=>{
+    const idd = state.selectedId; if(!idd){ alert('Selecciona una tarea.'); return; }
+    const remove = (list)=>{ const i=list.findIndex(x=>x.id===idd); if(i>=0){ list.splice(i,1); return true; } for(const t of list){ if(t.children && remove(t.children)) return true; } return false; };
+    if (confirm('¿Eliminar la tarea seleccionada?')){ remove(state.project.tasks); state.selectedId=null; save(); render(); }
+  });
+  if (scaleSel) scaleSel.addEventListener('change', (e)=>{
+    state.scale = e.target.value;
+    state.pxPerDay = pxPerDayForScale(state.scale);
+    localStorage.setItem('gantt-scale', state.scale);
+    render();
+  });
+  if (todayBtn) todayBtn.addEventListener('click', ()=>{
+    const x = xForDate(today());
+    const wrap = document.getElementById('timelineWrap');
+    if (wrap) wrap.scrollTo({ left: Math.max(0, x - 200), behavior:'smooth' });
+  });
+  if (exportBtn) exportBtn.addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state.project, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `project.json`; // Nombre de descarga sugerido
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  if (importInput) importInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader(); reader.onload = ()=>{
+      try{ const obj = JSON.parse(reader.result); if(!obj.tasks) throw new Error('Formato inválido'); state.project = obj; save(); render(); }
+      catch(err){ alert('No se pudo importar: '+err.message); }
+    }; reader.readAsText(file);
+    e.target.value = '';
+  });
+  
+  // --- Función de guardado (AÚN USA LOCALSTORAGE) ---
+  // Esto es para que tus cambios se mantengan si refrescas por error
+  function save(){ 
+    localStorage.setItem('gantt-project', JSON.stringify(state.project)); 
+  }
+
+  // --- Drag/Resize ---
+  let drag = null;
+  function startDragMove(e){
+    if (e.target.classList.contains('handle')) return;
+    const idd = e.currentTarget.getAttribute('data-id');
+    const t = findTaskById(idd); if(!t) return;
+    drag = { mode:'move', id:idd, startX: e.clientX, origStart: parseDate(t.start), origEnd: parseDate(t.end) };
+    state.selectedId = idd; renderTree();
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', endDrag);
+  }
+  function startDragResize(e){
+    const idd = e.currentTarget.getAttribute('data-id');
+    const mode = e.currentTarget.getAttribute('data-handle');
+    const t = findTaskById(idd); if(!t) return;
+    drag = { mode, id:idd, startX: e.clientX, origStart: parseDate(t.start), origEnd: parseDate(t.end) };
+    e.stopPropagation();
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', endDrag);
+  }
+  function onDrag(e){
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const deltaDays = Math.round(dx / state.pxPerDay);
+    const t = findTaskById(drag.id); if(!t) return;
+    if (drag.mode==='move'){
+      const newS = addDays(drag.origStart, deltaDays);
+      const newE = addDays(drag.origEnd,   deltaDays);
+      t.start = fmtDate(newS); t.end   = fmtDate(newE);
+    } else if (drag.mode==='start'){
+      let newS = addDays(drag.origStart, deltaDays);
+      if (newS > parseDate(t.end)) newS = parseDate(t.end);
+      t.start = fmtDate(newS);
+    } else if (drag.mode==='end'){
+      let newE = addDays(drag.origEnd, deltaDays);
+      if (newE < parseDate(t.start)) newE = parseDate(t.start);
+      t.end = fmtDate(newE);
+    }
+    renderTimelineOnly();
+  }
+  function endDrag(){
+    if(!drag) return;
+    const t = findTaskById(drag.id);
+    if (t){
+      if (drag.mode==='move'){
+        const deltaMoveDays = diffDays(drag.origStart, parseDate(t.start));
+        if (t.children && deltaMoveDays !== 0){
+          shiftChildrenSubtree(t, deltaMoveDays);
+        }
+        const extendDays = diffDays(drag.origEnd, parseDate(t.end));
+        if (state.autoCascade && extendDays > 0){
+          cascadeFromTask(t);
+        }
+      } else if (drag.mode==='end'){
+        const extendDays = diffDays(drag.origEnd, parseDate(t.end));
+        if (state.autoCascade && extendDays > 0){
+          cascadeFromTask(t);
+        }
+      }
+    }
+    save();
+    drag=null;
+    window.removeEventListener('mousemove', onDrag);
+    window.removeEventListener('mouseup', endDrag);
+    renderTimelineOnly();
+  }
+
+  // ======= Render maestro =======
+  function render(){
+    computeRange();
+    renderTree();
+    renderAxis();
+    renderTimelineOnly();
+    renderDetails();
+  }
+  (function initPrefs(){
+    const scaleSel = document.getElementById('scale');
+    const savedScale = localStorage.getItem('gantt-scale');
+    if (savedScale){
+      state.scale = savedScale;
+      state.pxPerDay = pxPerDayForScale(state.scale);
+      if (scaleSel) scaleSel.value = state.scale;
+    }
+    const autoCbx = document.getElementById('autoCascade');
+    state.autoCascade = (localStorage.getItem('gantt-auto-cascade') !== 'false');
+    if (autoCbx){
+      autoCbx.checked = state.autoCascade;
+      autoCbx.addEventListener('change', ()=>{
+        state.autoCascade = autoCbx.checked;
+        localStorage.setItem('gantt-auto-cascade', String(state.autoCascade));
+      });
+    }
+  })();
+  
+  // Pinta
+  render(); // La llamada a render() ahora se ejecuta después de que todo se haya cargado y definido.
+
+  // ======= Pruebas (sin cambios) =======
+  (function runSmokeTests(){
+    try{
+      console.group('%cPruebas Gantt','color:#D32F2F;font-weight:bold');
+      const mustHave = ['scale','tree','axis','timeline','details','addRoot','addChild','deleteTask','todayBtn','exportBtn','importInput'];
+      mustHave.forEach(id=>{
+        const ok = !!document.getElementById(id);
+        console[ok?'log':'error'](`${ok?'OK':'FALTA'} #${id}`);
+      });
+      const scaleSel = document.getElementById('scale');
+      if (scaleSel){
+        const prev = state.scale;
+        scaleSel.value = 'week';
+        scaleSel.dispatchEvent(new Event('change'));
+        console.assert(state.scale==='week', 'La escala debería pasar a week');
+        scaleSel.value = prev; scaleSel.dispatchEvent(new Event('change'));
+      }
+      const axis = document.getElementById('axis');
+      console.assert(axis && axis.style.width, 'El eje debe tener width calculado');
+      (function(){
+        const list = [ { id:'A', name:'A', start: todayOffset(0), end: todayOffset(0) }, { id:'B', name:'B', start: todayOffset(1), end: todayOffset(1) } ];
+        const aEnd = parseDate(list[0].end);
+        const newEnd = addDays(aEnd, 2); list[0].end = fmtDate(newEnd);
+        let prevEnd = parseDate(list[0].end);
+        const u = list[1];
+        const uStart = parseDate(u.start);
+        const minStart = addDays(prevEnd, 1);
+        if (uStart < minStart){
+          const delta = diffDays(uStart, minStart);
+          u.start = fmtDate(addDays(parseDate(u.start), delta));
+          u.end   = fmtDate(addDays(parseDate(u.end),   delta));
+        }
+        console.assert(list[1].start === fmtDate(minStart), 'B debe iniciar el día siguiente a fin de A');
+      })();
+      console.groupEnd();
+    }catch(err){ console.error('Error en pruebas:', err); }
+  })();
+
+})(); // Fin de la función asíncrona principal
+</script>
+</body>
+</html>

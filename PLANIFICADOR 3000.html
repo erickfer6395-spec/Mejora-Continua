@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Planificador semanal por áreas</title>
+
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.css" rel="stylesheet">
+
+<!-- FullCalendar (bundle global) -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js" crossorigin="anonymous"></script>
+
+<!-- Locales -->
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/locales-all.global.min.js" crossorigin="anonymous"></script>
+
+<style>
+:root{--bg:#0f172a;--panel:#111827;--text:#e5e7eb;--border:#1f2937;--radius:18px}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(160deg,#0b1220,#0f172a 40%,#0b1220);font-family:system-ui;color:var(--text)}
+.wrap{display:grid;grid-template-columns:380px 1fr;gap:16px;min-height:100%;padding:18px}
+.card{background:rgba(17,24,39,.85);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:var(--radius)}
+.card h2{margin:0 0 10px;font-size:18px;color:#0b1220;background:#f3f4f6;padding:8px 12px;border-radius:12px}
+.panel{padding:16px}
+.row{display:grid;grid-template-columns:1fr 110px 110px;gap:10px;align-items:center;margin-bottom:8px}
+label{font-size:13px;color:#fff}
+input,select,button{height:38px;border-radius:12px;border:1px solid var(--border);background:#0b1220;color:#fff;padding:0 12px}
+input::placeholder,#projectId::placeholder{color:#ffffffcc} #projectId{color:#fff}
+input[type="date"]{color:#fff} input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1)}
+button{cursor:pointer;border:1px solid #1f2937;background:linear-gradient(180deg,#1f2937,#111827);transition:.15s}
+button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.btn-primary{background:linear-gradient(180deg,#22c55e,#16a34a);border-color:#14532d;color:#fff;font-weight:600}
+.btn-ghost{background:transparent;border-color:#243244}
+.grid{display:grid;gap:10px}.grid.cols-2{grid-template-columns:1fr 1fr}.mt-2{margin-top:10px}.mt-3{margin-top:16px}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:12px;margin-top:8px}
+.badge{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:12px;background:#0b1220}
+.dot{width:12px;height:12px;border-radius:50%}
+#calendar{padding:12px;min-height:640px}
+
+/* Eventos por área */
+.area-corte .fc-event-main{background:linear-gradient(180deg,#34d399,#10b981)!important;color:#052e26}
+.area-ensamble .fc-event-main{background:linear-gradient(180deg,#60a5fa,#3b82f6)!important}
+.area-cierres .fc-event-main{background:linear-gradient(180deg,#fbbf24,#f59e0b)!important;color:#261500}
+.area-complementos .fc-event-main{background:linear-gradient(180deg,#c084fc,#a855f7)!important}
+.area-calidad .fc-event-main{background:linear-gradient(180deg,#f87171,#ef4444)!important}
+
+/* Franja de comida rayada (no manipulable) */
+.fc .bg-lunch{pointer-events:none;background:repeating-linear-gradient(45deg,rgba(234,179,8,.28) 0 12px,rgba(234,179,8,.12) 12px 24px)!important;box-shadow:inset 0 1px 0 rgba(234,179,8,.8),inset 0 -1px 0 rgba(234,179,8,.8)}
+
+/* Tabla disponibilidad */
+table.avail{width:100%;border-collapse:separate;border-spacing:0 6px}
+table.avail th,table.avail td{padding:8px 10px}
+table.avail th{font-size:12px;color:#9ca3af}
+table.avail td{background:#0b1220;border:1px solid var(--border);border-radius:10px}
+.badge-pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:#0f172a;font-size:12px}
+
+/* Modal editor */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:9999}
+.modal.show{display:flex}
+.modal-card{width:min(420px,92vw);background:#0b1220;border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.45);padding:16px}
+.modal-card h3{margin:0 0 10px;font-size:18px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+.small{font-size:12px;color:#9ca3af}
+.readonly{opacity:.9;background:#0f172a}
+
+
+/* ===== Calendario en modo claro ===== */
+#calendar{ padding:0 } /* quita el borde oscuro del padding */
+
+#calendar .fc,
+#calendar .fc-scrollgrid{ background:#fff }
+
+#calendar .fc-theme-standard .fc-scrollgrid,
+#calendar .fc-theme-standard td,
+#calendar .fc-theme-standard th{
+  border-color:#e5e7eb; /* líneas */
+}
+
+#calendar .fc-col-header,                 /* tira de días */
+#calendar .fc-timegrid-axis{              /* columna de horas */
+  background:#f8fafc;
+}
+
+#calendar .fc-col-header-cell-cushion,
+#calendar .fc-timegrid-axis-cushion{
+  color:#060708;                          /* texto encabezados/horas */
+}
+
+#calendar .fc-timegrid-slot{              /* carriles de 15 min */
+  background:#ffffff;
+  border-bottom:1px dashed #e5e7eb;
+}
+
+/* franja de comida sobre fondo claro */
+.fc .bg-lunch{
+  background:repeating-linear-gradient(45deg,rgba(234,179,8,.18) 0 12px,rgba(234,179,8,.06) 12px 24px)!important;
+  box-shadow:inset 0 1px 0 rgba(241, 182, 3, 0.781), inset 0 -1px 0 rgba(234,179,8,.5);
+}
+
+/* indicador de ahora (si se usa) */
+#calendar .fc .fc-now-indicator{ border-color:#ef4444 }
+
+
+/* === Columna izquierda (horas) en claro === */
+#calendar .fc-timegrid-axis,
+#calendar .fc-timegrid-axis-frame,
+#calendar .fc-timegrid-slot-label,
+#calendar .fc-timegrid-slot-label-frame{
+  background:#f1f5f9;           /* ← cambia este color */
+}
+
+#calendar .fc-timegrid-axis-cushion,
+#calendar .fc-timegrid-slot-label-cushion{
+  color:#334155;                 /* color del texto de horas */
+  opacity:1;
+  font-weight:600;               /* opcional */
+}
+
+/* Línea que separa el eje de horas de la grilla */
+#calendar .fc-timegrid-divider{
+  background:#e5e7eb;
+}
+
+/* Bordes suaves en modo claro */
+#calendar .fc-theme-standard td,
+#calendar .fc-theme-standard th{
+  border-color:#e5e7eb;
+}
+
+
+/* Ocultar asas de redimensión en eventos */
+#calendar .fc-event .fc-event-resizer,
+#calendar .fc-event .fc-resizer{
+  display:none !important;
+}
+
+/* ===== Bandeja de proyectos importados ===== */
+.inbox{display:grid;gap:8px;max-height:280px;overflow:auto;margin-top:6px}
+.inbox-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 10px;border:1px solid var(--border);border-radius:12px;
+  background:#0b1220; /* cámbialo a #fff si dejaste panel claro */
+  cursor:grab; user-select:none;
+}
+.inbox-item strong{font-weight:700}
+.inbox-item .mins{font-variant-numeric:tabular-nums;opacity:.9}
+.btn-mini{height:28px;padding:0 10px;border-radius:10px;border:1px solid #243244;background:transparent;color:#fff;cursor:pointer}
+.btn-mini:hover{transform:translateY(-1px)}
+
+
+
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="card panel">
+    <h2>Planificar proyecto semanal</h2>
+
+    <div class="grid cols-2">
+      <div class="grid"><label>Semana (lunes)</label><input id="weekStart" type="date"/></div>
+      <div class="grid"><label>N.º de proyecto</label><input id="projectId" placeholder="DTI-12345"/></div>
+    </div>
+
+    <!-- NUEVO: Inicio exacto -->
+    <div class="grid cols-2 mt-2">
+      <div class="grid"><label>Inicio – Fecha (opcional)</label><input id="startDate" type="date"/></div>
+      <div class="grid"><label>Inicio – Hora</label><input id="startTime" type="time" step="900" value="07:00"/></div>
+    </div>
+
+    <div class="mt-3">
+      <div class="row"><label>Área</label><label>Horas</label><label>Minutos</label></div>
+      <div class="row"><label>Corte</label><input id="h-corte" type="number" min="0" step="0.5"/><input id="m-corte" type="number" min="0" max="59" step="1"></div>
+      <div class="row"><label>Ensamble</label><input id="h-ensamble" type="number" min="0" step="0.5"/><input id="m-ensamble" type="number" min="0" max="59" step="1"></div>
+      <div class="row"><label>Cierres</label><input id="h-cierres" type="number" min="0" step="0.5"/><input id="m-cierres" type="number" min="0" max="59" step="1"></div>
+      <div class="row"><label>Complementos</label><input id="h-complementos" type="number" min="0" step="0.5"/><input id="m-complementos" type="number" min="0" max="59" step="1"></div>
+      <div class="row"><label>Calidad</label><input id="h-calidad" type="number" min="0" step="0.5"/><input id="m-calidad" type="number" min="0" max="59" step="1"></div>
+    </div>
+
+    <div class="grid cols-2 mt-2">
+      <div class="grid">
+        <label>Vista</label>
+        <select id="viewMode"><option value="week" selected>Semana</option><option value="day">Día</option></select>
+      </div>
+      <div class="grid"><label>Día a mostrar</label><input id="dayPick" type="date" disabled/></div>
+    </div>
+
+    <div class="mt-3">
+      <h2>Capacidad por área</h2>
+      <div class="grid cols-2">
+        <div class="grid"><label>Corte – Requeridos</label><input id="cap-req-corte" type="number" min="1" value="1"></div>
+        <div class="grid"><label>Disponibles</label><input id="cap-avail-corte" type="number" min="0" value="1"></div>
+        <div class="grid"><label>Ensamble – Requeridos</label><input id="cap-req-ensamble" type="number" min="1" value="1"></div>
+        <div class="grid"><label>Disponibles</label><input id="cap-avail-ensamble" type="number" min="0" value="1"></div>
+        <div class="grid"><label>Cierres – Requeridos</label><input id="cap-req-cierres" type="number" min="1" value="1"></div>
+        <div class="grid"><label>Disponibles</label><input id="cap-avail-cierres" type="number" min="0" value="1"></div>
+        <div class="grid"><label>Complementos – Requeridos</label><input id="cap-req-complementos" type="number" min="1" value="1"></div>
+        <div class="grid"><label>Disponibles</label><input id="cap-avail-complementos" type="number" min="0" value="1"></div>
+        <div class="grid"><label>Calidad – Requeridos</label><input id="cap-req-calidad" type="number" min="1" value="1"></div>
+        <div class="grid"><label>Disponibles</label><input id="cap-avail-calidad" type="number" min="0" value="1"></div>
+        <div class="grid"><label>&nbsp;</label><button id="applyCapacityBtn" class="btn-ghost">Aplicar a semana visible</button></div>
+        <div class="grid"><label>&nbsp;</label><button id="applyCapacityDayBtn" class="btn-ghost">Aplicar al día</button></div>
+      </div>
+    </div>
+
+    <!-- Importar TXT -->
+    <div class="grid cols-2 mt-2">
+      <div class="grid"><label>Importar TXT de proyectos</label><input id="txtInput" type="file" accept=".txt"/></div>
+      <div class="grid"><label>&nbsp;</label><button id="importTxtBtn" class="btn-ghost">Importar TXT</button></div>
+    </div>
+
+    <div class="grid cols-2 mt-3">
+      <button id="addBtn" class="btn-primary">Agregar al calendario</button>
+      <button id="clearBtn" class="btn-ghost">Limpiar todo</button>
+    </div>
+
+    <!-- MODO URGENTE: insertar empujando -->
+<div class="mt-2">
+  <label class="badge">
+    <input type="checkbox" id="urgentInsert" style="transform:translateY(1px);margin-right:8px">
+    Urgente (insertar y desplazar)
+  </label>
+</div>
+
+
+  <div class="grid cols-2 mt-3">
+  <button id="addBtn"   class="btn-primary">Agregar al calendario</button>
+  <button id="clearBtn" class="btn-ghost">Limpiar todo</button>
+</div>
+
+<!-- NUEVO: Deshacer / Rehacer -->
+<div class="grid cols-2 mt-2">
+  <button id="undoBtn" class="btn-ghost" title="Ctrl+Z">Deshacer</button>
+  <button id="redoBtn" class="btn-ghost" title="Ctrl+Y">Rehacer</button>
+</div>
+
+
+    <div class="mt-3">
+  <h2>Bandeja de proyectos importados</h2>
+  <div class="small">Arrastra una ficha al calendario o selecciona una fecha/hora y pulsa “Programar”.</div>
+  <div class="mt-2" id="autoPlaceRow">
+  <button id="autoPlaceBtn" class="btn-primary">Colocación automática</button>
+</div>
+
+  <div id="inbox" class="inbox"></div>
+</div>
+
+
+    <div class="mt-3">
+      <h2>Filtros / Acciones</h2>
+
+      <!-- Filtro por área -->
+      <div class="legend">
+        <label class="badge"><span class="dot" style="background:#10b981"></span><input type="checkbox" id="f-corte" checked> Corte</label>
+        <label class="badge"><span class="dot" style="background:#3b82f6"></span><input type="checkbox" id="f-ensamble" checked> Ensamble</label>
+        <label class="badge"><span class="dot" style="background:#f59e0b"></span><input type="checkbox" id="f-cierres" checked> Cierres</label>
+        <label class="badge"><span class="dot" style="background:#a855f7"></span><input type="checkbox" id="f-complementos" checked> Complementos</label>
+        <label class="badge"><span class="dot" style="background:#ef4444"></span><input type="checkbox" id="f-calidad" checked> Calidad</label>
+      </div>
+
+      <!-- NUEVO: Filtro por proyecto (texto + sugerencias) -->
+<div class="grid cols-2 mt-2">
+  <div class="grid">
+    <label>Ver solo proyecto</label>
+    <input id="filterProjectInput" type="text" placeholder="Escribe el número (p. ej. DTI-123)" list="projectHints"/>
+    <datalist id="projectHints"></datalist>
+  </div>
+  <div class="grid">
+    <label>&nbsp;</label>
+    <button id="clearProjectFilterBtn" class="btn-ghost">Quitar filtro</button>
+  </div>
+</div>
+
+            <!-- Acciones de borrado -->
+      <div class="grid cols-2 mt-2">
+        <div class="grid"><label>Eliminar por proyecto</label><select id="projectList"><option value="">Selecciona proyecto…</option></select></div>
+        <div class="grid"><label>&nbsp;</label><button id="delProjectBtn" class="btn-ghost">Eliminar proyecto</button></div>
+        <div class="grid"><label>Eliminar por área</label>
+          <select id="areaSelect">
+            <option value="">Selecciona área…</option>
+            <option value="corte">Corte</option><option value="ensamble">Ensamble</option>
+            <option value="cierres">Cierres</option><option value="complementos">Complementos</option>
+            <option value="calidad">Calidad</option>
+          </select>
+        </div>
+        <div class="grid"><label>&nbsp;</label><button id="delAreaBtn" class="btn-ghost">Eliminar área</button></div>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <h2>Disponibilidad por área</h2>
+      <div id="availability"></div>
+    </div>
+  </section>
+
+  <section class="card"><div id="calendar"></div></section>
+</div>
+
+<!-- ===== MODAL EDITOR ===== -->
+<div id="eventEditor" class="modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="ee-title">
+    <h3 id="ee-title">Editar bloque</h3>
+    <div class="modal-grid">
+      <div class="grid"><label>Proyecto</label><input id="ee-pid" class="readonly" readonly></div>
+      <div class="grid"><label>Área</label><input id="ee-area" class="readonly" readonly></div>
+      <div class="grid"><label>Fecha inicio</label><input id="ee-date" type="date"></div>
+      <div class="grid"><label>Hora inicio</label><input id="ee-time" type="time" step="60"></div>
+      <div class="grid"><label>Duración (horas)</label><input id="ee-hours" type="number" min="0" step="1"></div>
+      <div class="grid"><label>Duración (min)</label><input id="ee-mins" type="number" min="0" max="59" step="1"></div>
+    </div>
+    <div class="small" style="margin-top:8px">
+      Se respetan comida (12:00–12:50), fin de jornada (16:30) y fusión de bloques contiguos del mismo proyecto/área.
+    </div>
+    <div class="modal-actions">
+      <button id="ee-delete" type="button" class="btn-ghost" style="border-color:#7f1d1d;color:#fecaca">Eliminar</button>
+      <button id="ee-cancel" type="button" class="btn-ghost">Cancelar</button>
+      <button id="ee-save"   type="button" class="btn-primary">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================= JS =========================
+
+// ===== Constantes/Utils =====
+const AREA_ORDER = ["corte","ensamble","cierres","complementos","calidad"];
+const AREA_LABEL = { corte:"Corte", ensamble:"Ensamble", cierres:"Cierres", complementos:"Complementos", calidad:"Calidad" };
+const LABEL_TO_AREA = Object.fromEntries(Object.entries(AREA_LABEL).map(([k,v])=>[v.toLowerCase(),k]));
+
+const WORK_START = {h:7, m:0};
+const WORK_END   = {h:16, m:30};
+const LUNCH_START= {h:12, m:0};
+const LUNCH_END  = {h:12, m:50};
+const WORK_DAYS  = [1,2,3,4,5];
+const MERGE_TOL_MIN = 1;
+
+const STORAGE_KEY = 'planner-events-v1';
+
+const INBOX_KEY = 'planner-inbox-v1';
+let inbox = [];
+
+// ===== Historial (Deshacer / Rehacer) por snapshots =====
+const MAX_HISTORY = 30;
+let undoStack = [];
+let redoStack = [];
+let __restoringSnapshot = false; // evita bucles durante restore
+
+function serializeEventsForStorage() {
+  // Mismo formato que saveEvents(): excluye lunch backgrounds
+  return calendar.getEvents()
+    .filter(e => !(e.extendedProps && e.extendedProps.bg === 'lunch'))
+    .map(e => ({
+      id: e.id,
+      title: e.title,
+      start: e.start,
+      end: e.end,
+      classNames: e.classNames,
+      extendedProps: e.extendedProps
+    }));
+}
+
+function takeSnapshot(label = '') {
+  if (!window.calendar) return;
+  const snap = {
+    label,
+    date: calendar.getDate().toISOString(),
+    events: serializeEventsForStorage(),
+    inbox: Array.isArray(inbox) ? JSON.parse(JSON.stringify(inbox)) : []
+  };
+  undoStack.push(snap);
+  if (undoStack.length > MAX_HISTORY) undoStack.shift();
+  // Cada acción nueva invalida el futuro
+  redoStack = [];
+  updateUndoRedoButtons();
+}
+
+function restoreSnapshot(snap) {
+  if (!snap) return;
+  __restoringSnapshot = true;
+  try {
+    // 1) limpiar eventos (excepto lunch BG)
+    calendar.getEvents()
+      .filter(e => !(e.extendedProps && e.extendedProps.bg === 'lunch'))
+      .forEach(e => e.remove());
+
+    // 2) restaurar eventos
+    (snap.events || []).forEach(e => calendar.addEvent(e));
+
+    // 3) restaurar inbox
+    inbox = Array.isArray(snap.inbox) ? JSON.parse(JSON.stringify(snap.inbox)) : [];
+    saveInbox();
+    renderInbox?.();
+
+    // 4) mover fecha visible (opcional pero útil)
+    const d = new Date(snap.date || Date.now());
+    calendar.gotoDate(d);
+
+    // 5) persistir
+    saveEvents(calendar);
+    if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+  } finally {
+    __restoringSnapshot = false;
+  }
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  // El estado actual pasa a redo; restauramos el previo
+  const current = {
+    label: 'current',
+    date: calendar.getDate().toISOString(),
+    events: serializeEventsForStorage(),
+    inbox: Array.isArray(inbox) ? JSON.parse(JSON.stringify(inbox)) : []
+  };
+  const previous = undoStack.pop();
+  redoStack.push(current);
+  restoreSnapshot(previous);
+  updateUndoRedoButtons();
+}
+
+function redo() {
+  if (!redoStack.length) return;
+  const current = {
+    label: 'current',
+    date: calendar.getDate().toISOString(),
+    events: serializeEventsForStorage(),
+    inbox: Array.isArray(inbox) ? JSON.parse(JSON.stringify(inbox)) : []
+  };
+  const next = redoStack.pop();
+  undoStack.push(current);
+  restoreSnapshot(next);
+  updateUndoRedoButtons();
+}
+
+function updateUndoRedoButtons() {
+  const u = document.getElementById('undoBtn');
+  const r = document.getElementById('redoBtn');
+  if (u) u.disabled = undoStack.length === 0;
+  if (r) r.disabled = redoStack.length === 0;
+}
+
+
+function saveInbox(){
+  localStorage.setItem(INBOX_KEY, JSON.stringify(inbox));
+}
+function loadInbox(){
+  try{ inbox = JSON.parse(localStorage.getItem(INBOX_KEY)||'[]'); }
+  catch(e){ inbox = []; }
+}
+function fmtHM(mins){ mins=Math.max(0,Math.round(mins)); const h=Math.floor(mins/60), m=mins%60; return `${h}:${String(m).padStart(2,'0')}`; }
+function newInboxId(){ return `inb-${Date.now()}-${Math.random().toString(36).slice(2,7)}`; }
+
+
+
+function setHM(d,h,m){ d.setHours(h,m,0,0); return d; }
+function clone(d){ return new Date(d.getTime()); }
+function addMin(d,min){ return new Date(d.getTime()+min*60000); }
+function diffMin(a,b){ return (b - a)/60000; }
+
+// Pinta minutos en inputs H/M de un área (FIX del typo)
+function setAreaInput(area,totalMin){
+  const h = document.getElementById('h-'+area);
+  const m = document.getElementById('m-'+area);
+  const t = Math.max(0, Math.round(totalMin));
+  if (h) h.value = String(Math.floor(t/60));
+  if (m) m.value = String(t%60);
+}
+
+// Persistencia
+function saveEvents(calendar){
+  const data = calendar.getEvents()
+    .filter(e=>!(e.extendedProps && e.extendedProps.bg==='lunch'))
+    .map(e=>({id:e.id,title:e.title,start:e.start,end:e.end,classNames:e.classNames,extendedProps:e.extendedProps}));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadEvents(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+
+// Parse helpers
+function parsePidFromTitle(t){ const p=String(t||'').split('•'); return (p[0]||'').trim(); }
+function parseAreaFromTitle(t){
+  const p=String(t||'').split('•');
+  return LABEL_TO_AREA[(p[1]||'').trim().toLowerCase()] || '';
+}
+function parseAreaFromClasses(cs){
+  for (const c of cs){ if (typeof c==='string' && c.startsWith('area-')) return c.slice(5); }
+  return '';
+}
+function removeAccents(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+// Fechas y horario
+function mondayOf(d){
+  const c = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = c.getDay();
+  c.setDate(c.getDate() + (day===0 ? -6 : 1 - day));
+  return setHM(c, WORK_START.h, WORK_START.m);
+}
+function withinWorkHours(d){
+  if(!WORK_DAYS.includes(d.getDay())) return false;
+  const mins=d.getHours()*60+d.getMinutes();
+  const s=WORK_START.h*60+WORK_START.m, e=WORK_END.h*60+WORK_END.m;
+  return (mins>=s && mins<e);
+}
+function isLunch(d){
+  const m=d.getHours()*60+d.getMinutes();
+  const Ls=LUNCH_START.h*60+LUNCH_START.m, Le=LUNCH_END.h*60+LUNCH_END.m;
+  return m>=Ls && m<Le;
+}
+
+// Fondo franja comida
+function addLunchBackgrounds(calendar){
+  calendar.getEvents().filter(e=>e.extendedProps?.bg==='lunch').forEach(e=>e.remove());
+  const base = mondayOf(calendar.getDate());
+  for(let i=0;i<5;i++){
+    const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()+i);
+    const s=setHM(clone(d),LUNCH_START.h,LUNCH_START.m);
+    const e=setHM(clone(d),LUNCH_END.h,LUNCH_END.m);
+    calendar.addEvent({
+      start:s, end:e, display:'background', editable:false, overlap:true,
+      classNames:['bg-lunch'], extendedProps:{bg:'lunch'}
+    });
+  }
+}
+function spansLunch(s,e){
+  const Ls=LUNCH_START.h*60+LUNCH_START.m, Le=LUNCH_END.h*60+LUNCH_END.m;
+  if (s.toDateString()!==e.toDateString()) return false;
+  const sm=s.getHours()*60+s.getMinutes(), em=e.getHours()*60+e.getMinutes();
+  return (sm<Ls && em>Ls) || (sm>=Ls && sm<Le) || (em>Ls && em<=Le);
+}
+
+// Capacidad
+function getAreaFactor(area){
+  const rq=+document.getElementById('cap-req-'+area)?.value||1;
+  const av=+document.getElementById('cap-avail-'+area)?.value||1;
+  return Math.max(1, rq/Math.max(1,av)); // solo crecer
+}
+
+// Colisiones / normalización
+function overlaps(aS,aE,bS,bE){ return (aS<bE)&&(aE>bS); }
+function hasCollision(start,end){
+  return calendar.getEvents().filter(e=>e.display!=='background').some(e=>overlaps(start,end,e.start,e.end));
+}
+function advanceToNextWorkStart(d){
+  let n=clone(d);
+  n.setDate(n.getDate()+1);
+  while(!WORK_DAYS.includes(n.getDay())) n.setDate(n.getDate()+1);
+  return setHM(n, WORK_START.h, WORK_START.m);
+}
+function normalizeCursor(d){
+  let c=clone(d);
+  if(!WORK_DAYS.includes(c.getDay())){
+    while(!WORK_DAYS.includes(c.getDay())) c.setDate(c.getDate()+1);
+    return setHM(c, WORK_START.h, WORK_START.m);
+  }
+  const mins=c.getHours()*60+c.getMinutes(), s=WORK_START.h*60+WORK_START.m, e=WORK_END.h*60+WORK_END.m;
+  if (mins<s) return setHM(c,WORK_START.h,WORK_START.m);
+  if (mins>=e) return advanceToNextWorkStart(c);
+  if (isLunch(c)) return setHM(c,LUNCH_END.h,LUNCH_END.m);
+  return c;
+}
+function findNextFreeSlot(from,durationMin){
+  let t=clone(from);
+  for (let i=0;i<14*24*4;i++){ // hasta 14 días, pasos 15 min
+    t=normalizeCursor(t);
+    const end=addMin(t,durationMin);
+    if (spansLunch(t,end)){ t=setHM(clone(t),LUNCH_END.h,LUNCH_END.m); continue; }
+    if (!hasCollision(t,end)) return t;
+    t=addMin(t,15);
+  }
+  return null;
+}
+
+// Crear / Reglas / Fusionar
+let idSeed=1;
+function createAreaEvent(pid,area,start,end,extraProps={}){
+  return calendar.addEvent({
+    id:`ev-${Date.now()}-${idSeed++}`,
+    title:`${pid} • ${AREA_LABEL[area]}`,
+    start, end,
+    classNames:[`area-${area}`],
+    extendedProps:{pid,area,...extraProps}
+  });
+}
+function workBoundsFor(date){
+  const b=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+  return { start:setHM(clone(b),WORK_START.h,WORK_START.m), end:setHM(clone(b),WORK_END.h,WORK_END.m) };
+}
+function crossesDayEnd(s,e){ const {end:WE}=workBoundsFor(s); return (s<WE && e>WE); }
+
+function enforceRulesOnDrag(event){ enforceLunch(event); enforceWorkEnd(event); }
+
+function enforceLunch(event){
+  if (event.display==='background' || !event.start || !event.end) return;
+  const pid  = event.extendedProps?.pid || parsePidFromTitle(event.title);
+  const area = event.extendedProps?.area|| parseAreaFromTitle(event.title)|| parseAreaFromClasses(event.classNames||[]);
+  if (!pid || !area) return;
+
+  const s=event.start, e=event.end;
+  const dayBase=new Date(s.getFullYear(),s.getMonth(),s.getDate());
+  const LS=setHM(clone(dayBase),LUNCH_START.h,LUNCH_START.m);
+  const LE=setHM(clone(dayBase),LUNCH_END.h,LUNCH_END.m);
+
+  const overlapsLunch = !(e<=LS || s>=LE);
+  if (!overlapsLunch) { tryMergeSegments(event,pid,area); return; }
+
+  const cf   = event.extendedProps?.cf || getAreaFactor(area);
+  const orig = Math.max(1, Math.round(diffMin(s,e)));
+  const base = event.extendedProps?.baseMin || Math.max(1, Math.round(orig/Math.max(1,cf)));
+
+  const leftDur  = Math.max(0, Math.min(Math.round(diffMin(s,LS)), orig));
+  const rightDur = Math.max(0, orig - leftDur);
+
+  const baseLeft  = Math.max(0, Math.round(base * (leftDur / Math.max(1,orig))));
+  const baseRight = Math.max(0, base - baseLeft);
+
+  const group = event.extendedProps.segGroup || `g-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+  event.remove();
+  if (leftDur > 0){ createAreaEvent(pid, area, s, LS, {segGroup:group, cf, baseMin: baseLeft}); }
+  if (rightDur > 0){
+    const rightStart = LE, rightEnd = addMin(rightStart, rightDur);
+    const ev2 = createAreaEvent(pid, area, rightStart, rightEnd, {segGroup:group, cf, baseMin: baseRight});
+    enforceWorkEnd(ev2);
+  }
+  saveEvents(calendar);
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+
+function enforceWorkEnd(event){
+  if (event.display==='background' || !event.start || !event.end) return;
+  const pid = event.extendedProps?.pid || parsePidFromTitle(event.title);
+  const area= event.extendedProps?.area|| parseAreaFromTitle(event.title)|| parseAreaFromClasses(event.classNames||[]);
+  if (!pid || !area) return;
+
+  let s=event.start, e=event.end;
+  const {start:WS, end:WE} = workBoundsFor(s);
+  const total = diffMin(s,e);
+  const cf=event.extendedProps?.cf || getAreaFactor(area);
+  const baseTotal=event.extendedProps?.baseMin || Math.round(total/Math.max(1,cf));
+
+  if (s>=WE){
+    const ns=advanceToNextWorkStart(s);
+    event.setStart(ns); event.setEnd(addMin(ns,total));
+  }
+  if (s<WS && e>WS){
+    const ns=WS; event.setStart(ns); event.setEnd(addMin(ns,total));
+    s=event.start; e=event.end;
+  }
+  if (crossesDayEnd(s,e)){
+    const left=Math.max(0, Math.floor(diffMin(s,WE)));
+    const rest=Math.max(0, Math.floor(total-left));
+    const baseLeft = Math.round(baseTotal*(left/Math.max(1,left+rest)));
+    const baseRight= Math.max(0, baseTotal-baseLeft);
+    const group= event.extendedProps.segGroup || `g-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    event.remove();
+    if (left>0) createAreaEvent(pid,area,s,WE,{segGroup:group,cf,baseMin:baseLeft});
+    if (rest>0){
+      const ns=advanceToNextWorkStart(s), ne=addMin(ns,rest);
+      const ev2=createAreaEvent(pid,area,ns,ne,{segGroup:group,cf,baseMin:baseRight});
+      if (crossesDayEnd(ev2.start,ev2.end)) enforceWorkEnd(ev2);
+    }
+    return;
+  }
+  tryMergeSegments(event,pid,area);
+}
+
+function tryMergeSegments(event, pid, area){
+  const dayStr = event.start.toDateString();
+  const cands = calendar.getEvents().filter(e =>
+    e.display!=='background' &&
+    e.extendedProps?.pid===pid &&
+    e.extendedProps?.area===area &&
+    e.start && e.end &&
+    e.start.toDateString()===dayStr && e.end.toDateString()===dayStr
+  );
+  if (cands.length < 2) return;
+
+  cands.sort((a,b)=>a.start - b.start);
+  const groups=[]; let cur=[cands[0]];
+  for (let i=1;i<cands.length;i++){
+    const gap = diffMin(cur[cur.length-1].end, cands[i].start);
+    if (gap > MERGE_TOL_MIN) { groups.push(cur); cur=[cands[i]]; }
+    else { cur.push(cands[i]); }
+  }
+  groups.push(cur);
+
+  const target = groups.find(g => g.some(e => e.id === event.id));
+  if (!target || target.length < 2) return;
+
+  const start = new Date(Math.min(...target.map(e => e.start)));
+  const endCandidate = new Date(Math.max(...target.map(e => e.end)));
+  if (spansLunch(start, endCandidate)) return;
+
+  const baseTotal = Math.max(1, Math.round(target.reduce((acc,e)=>{
+    if (e.extendedProps?.baseMin) return acc + e.extendedProps.baseMin;
+    const segDur = Math.max(1, Math.round(diffMin(e.start,e.end)));
+    const segCf  = Math.max(1, (e.extendedProps?.cf ?? getAreaFactor(area)));
+    return acc + Math.max(1, Math.round(segDur / segCf));
+  }, 0)));
+  const durTotal  = Math.max(1, Math.round(target.reduce((acc,e)=> acc + diffMin(e.start,e.end), 0)));
+  const { end: WE } = workBoundsFor(start);
+  const end = addMin(start, durTotal);
+  if (end > WE) return;
+
+  const cfMerged = Math.max(1, durTotal / baseTotal);
+  target.forEach(e => e.remove());
+  const merged = createAreaEvent(pid, area, start, end, { baseMin: baseTotal, cf: cfMerged });
+  enforceRulesOnDrag(merged);
+  saveEvents(calendar);
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+
+// Alta manual (usa inicio exacto si lo defines)
+function toMinutes(hId,mId){
+  const h=parseFloat(document.getElementById(hId).value||'0')||0;
+  const m=parseInt(document.getElementById(mId).value||'0',10)||0;
+  return Math.max(0, Math.round(h*60+m));
+}
+function scheduleBlock(pid,area,minutes,startCursor,factor=1){
+  let remaining=minutes, cursor=normalizeCursor(startCursor);
+  while(remaining>0){
+    const beforeLunch=(cursor.getHours()*60+cursor.getMinutes())<(LUNCH_START.h*60+LUNCH_START.m);
+    const limit = beforeLunch ? setHM(clone(cursor),LUNCH_START.h,LUNCH_START.m)
+                              : setHM(clone(cursor),WORK_END.h,WORK_END.m);
+    const canToday=Math.max(0, Math.floor(diffMin(cursor,limit)));
+    if (canToday<=0){
+      cursor = beforeLunch ? setHM(clone(cursor),LUNCH_END.h,LUNCH_END.m) : advanceToNextWorkStart(cursor);
+      cursor = normalizeCursor(cursor);
+      continue;
+    }
+    const slot=Math.min(remaining, canToday);
+    const freeStart=findNextFreeSlot(cursor,slot);
+    if (!freeStart){ cursor=advanceToNextWorkStart(cursor); continue; }
+    const freeEnd=addMin(freeStart,slot);
+    const segDur=Math.round(diffMin(freeStart,freeEnd));
+    const baseSeg=Math.max(1, Math.round(segDur/Math.max(1,factor)));
+    createAreaEvent(pid,area,freeStart,freeEnd,{cf:factor, baseMin:baseSeg});
+    remaining-=slot; cursor=normalizeCursor(freeEnd);
+  }
+  return cursor;
+}
+
+// --- Solo para Auto-Placement: colisión por ÁREA ---
+function hasCollisionArea(start, end, area){
+  return calendar.getEvents()
+    .filter(e => e.display!=='background')
+    .filter(e => {
+      const a = e.extendedProps?.area
+        || parseAreaFromTitle(e.title)
+        || parseAreaFromClasses(e.classNames||[]);
+      return a === area; // colisión solo con la MISMA área
+    })
+    .some(e => overlaps(start, end, e.start, e.end));
+}
+
+function findNextFreeSlotArea(from, durationMin, area){
+  let t = clone(from);
+  for (let i=0;i<14*24*4;i++){ // hasta 14 días, pasos de 15 min
+    t = normalizeCursor(t);
+    const end = addMin(t, durationMin);
+    if (spansLunch(t,end)){ t = setHM(clone(t), LUNCH_END.h, LUNCH_END.m); continue; }
+    if (!hasCollisionArea(t, end, area)) return t; // chequea SOLO misma área
+    t = addMin(t, 15);
+  }
+  return null;
+}
+
+// Igual que scheduleBlock, pero usando findNextFreeSlotArea
+function scheduleBlockArea(pid, area, minutes, startCursor, factor=1){
+  let remaining=minutes, cursor=normalizeCursor(startCursor);
+  while(remaining>0){
+    const beforeLunch=(cursor.getHours()*60+cursor.getMinutes())<(LUNCH_START.h*60+LUNCH_START.m);
+    const limit = beforeLunch ? setHM(clone(cursor),LUNCH_START.h,LUNCH_START.m)
+                              : setHM(clone(cursor),WORK_END.h,WORK_END.m);
+    const canToday=Math.max(0, Math.floor(diffMin(cursor,limit)));
+    if (canToday<=0){
+      cursor = beforeLunch ? setHM(clone(cursor),LUNCH_END.h,LUNCH_END.m) : advanceToNextWorkStart(cursor);
+      cursor = normalizeCursor(cursor);
+      continue;
+    }
+    const slot=Math.min(remaining, canToday);
+    const freeStart=findNextFreeSlotArea(cursor, slot, area); // ← clave
+    if (!freeStart){ cursor=advanceToNextWorkStart(cursor); continue; }
+    const freeEnd=addMin(freeStart,slot);
+    const segDur=Math.round(diffMin(freeStart,freeEnd));
+    const baseSeg=Math.max(1, Math.round(segDur/Math.max(1,factor)));
+    createAreaEvent(pid,area,freeStart,freeEnd,{cf:factor, baseMin: baseSeg});
+    remaining-=slot; cursor=normalizeCursor(freeEnd);
+  }
+  return cursor;
+}
+
+
+// --- Utilidad: ¿está activo el modo urgente?
+function urgentInsertChecked(){
+  return document.getElementById('urgentInsert')?.checked === true;
+}
+
+// --- Desplaza en cadena TODOS los eventos de un ÁREA desde un "fromTime" hacia adelante deltaMin
+function shiftAreaChain(area, fromTime, deltaMin){
+  if (deltaMin <= 0) return;
+
+  const sameAreaEvents = calendar.getEvents()
+    .filter(e => e.display!=='background')
+    .filter(e => {
+      const a = e.extendedProps?.area
+        || parseAreaFromTitle(e.title)
+        || parseAreaFromClasses(e.classNames||[]);
+      return a === area;
+    })
+    .filter(e => e.end > fromTime)
+    .sort((a,b) => a.start - b.start);
+
+  for (const ev of sameAreaEvents){
+    const ns = addMin(ev.start, deltaMin);
+    const ne = addMin(ev.end,   deltaMin);
+    ev.setStart(ns);
+    ev.setEnd(ne);
+    // Respeta comida y fin de jornada dividiendo si hace falta
+    enforceRulesOnDrag(ev);
+  }
+}
+
+// --- Inserta bloque empujando cadena del ÁREA para abrir hueco exacto
+function insertBlockAndShift(pid, area, minutes, start, factor=1){
+  let remaining = Math.max(1, Math.round(minutes));
+  let cursor = normalizeCursor(start);
+
+  while (remaining > 0){
+    const beforeLunch = (cursor.getHours()*60+cursor.getMinutes()) < (LUNCH_START.h*60+LUNCH_START.m);
+    const limit = beforeLunch
+      ? setHM(clone(cursor), LUNCH_START.h, LUNCH_START.m)
+      : setHM(clone(cursor), WORK_END.h,    WORK_END.m);
+
+    let capacity = Math.max(0, Math.floor(diffMin(cursor, limit)));
+    if (capacity <= 0){
+      cursor = beforeLunch ? setHM(clone(cursor), LUNCH_END.h, LUNCH_END.m) : advanceToNextWorkStart(cursor);
+      cursor = normalizeCursor(cursor);
+      continue;
+    }
+
+    const seg = Math.min(remaining, capacity);
+
+    // 1) Empuja cadena del área a partir de 'cursor' para abrir el hueco
+    shiftAreaChain(area, cursor, seg);
+
+    // 2) Ocupa ese hueco con el nuevo bloque
+    const end = addMin(cursor, seg);
+    const baseSeg = Math.max(1, Math.round(seg / Math.max(1, factor)));
+    createAreaEvent(pid, area, cursor, end, { cf: factor, baseMin: baseSeg });
+
+    // 3) Siguiente tramo
+    cursor = normalizeCursor(end);
+    remaining -= seg;
+  }
+}
+
+
+
+function onAdd(){
+  takeSnapshot('onAdd');
+  const pid=(document.getElementById('projectId').value||'').trim();
+  if (!pid){ alert('Ingresa el número de proyecto'); return; }
+
+  const minsByArea={
+    corte:toMinutes('h-corte','m-corte'),
+    ensamble:toMinutes('h-ensamble','m-ensamble'),
+    cierres:toMinutes('h-cierres','m-cierres'),
+    complementos:toMinutes('h-complementos','m-complementos'),
+    calidad:toMinutes('h-calidad','m-calidad'),
+    
+  };
+  if (Object.values(minsByArea).every(v=>v<=0)){ alert('Define al menos una duración.'); return; }
+
+  const startDateStr = document.getElementById('startDate').value;
+  const startTimeStr = document.getElementById('startTime').value || '07:00';
+
+  // === INICIO BASE ÚNICO ===
+  let baseStart;
+  if (startDateStr){
+    const raw = new Date(`${startDateStr}T${startTimeStr}:00`);
+    baseStart = normalizeCursor(raw);
+    calendar.gotoDate(baseStart);
+  } else {
+    const wsStr=document.getElementById('weekStart').value;
+    if (!wsStr){ alert('Selecciona el lunes de la semana o define Inicio – Fecha.'); return; }
+    const ws=setHM(new Date(wsStr+'T00:00:00'), WORK_START.h, WORK_START.m);
+    baseStart = clone(ws);
+    calendar.gotoDate(ws);
+  }
+
+  // === PROGRAMAR POR ÁREA, CADA UNA DESDE baseStart ===
+for (const area of AREA_ORDER){
+  const rawMin = minsByArea[area] || 0;
+  if (rawMin > 0){
+    const f = getAreaFactor(area);
+    const minutes = Math.round(rawMin * Math.max(1, f));
+    const startThisArea = new Date(baseStart.getTime()); // cada área parte del mismo inicio
+
+    if (urgentInsertChecked()){
+      insertBlockAndShift(pid, area, minutes, startThisArea, f);
+    } else {
+      scheduleBlock(pid, area, minutes, startThisArea, f);
+    }
+  }
+}
+
+
+  saveEvents(calendar);
+  refreshProjectList();
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+
+
+
+
+// ===== Colocación automática por área (desde bandeja) =====
+function autoPlaceInboxByArea(){
+  if (!Array.isArray(inbox) || inbox.length === 0){
+    alert('La bandeja está vacía. Importa o agrega fichas primero.');
+    return;
+  }
+
+  // Agrupar fichas por área respetando el orden original de la bandeja
+  const grouped = { corte:[], ensamble:[], cierres:[], complementos:[], calidad:[] };
+  for (const it of inbox){
+    if (it && grouped.hasOwnProperty(it.area)) grouped[it.area].push(it);
+  }
+
+  // Punto de inicio sugerido (Inicio Fecha/Hora > Semana > fecha visible)
+  let baseStart = pickStartForProject({
+    startDate: document.getElementById('startDate')?.value || null,
+    startTime: document.getElementById('startTime')?.value || '07:00',
+    weekStart: document.getElementById('weekStart')?.value || null
+  });
+  baseStart = normalizeCursor(baseStart);
+  calendar.gotoDate(baseStart);
+
+  // Programar en cadena por área: cada bloque empieza donde terminó el anterior de su área
+  const placedIds = new Set();
+  let placedCount = 0;
+
+  for (const area of AREA_ORDER){
+    let cursor = new Date(baseStart.getTime());
+    const f = getAreaFactor(area);
+
+    for (const it of grouped[area]){
+      const pid  = it.pid;
+      const mins = Math.max(1, Math.round(+it.minutes || 0));
+      if (mins <= 0) continue;
+
+      cursor = scheduleBlockArea(pid, area, mins, cursor, f);
+
+      placedIds.add(it.id);
+      placedCount++;
+    }
+  }
+
+  // Limpiar bandeja de lo ya colocado
+  if (placedIds.size){
+    inbox = inbox.filter(x => !placedIds.has(x.id));
+    saveInbox();
+    renderInbox();
+  }
+
+  saveEvents(calendar);
+  refreshProjectList();
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+
+  alert(`Se colocaron automáticamente ${placedCount} ficha(s) por área.`);
+}
+
+function renderInbox(){
+  const host = document.getElementById('inbox');
+  if (!host) return;
+
+  if (!Array.isArray(inbox)) inbox = [];
+  host.innerHTML = inbox.map(it => `
+    <div class="inbox-item"
+         data-id="${it.id}"
+         data-pid="${it.pid}"
+         data-area="${it.area}"
+         data-minutes="${it.minutes}"
+         data-title="${it.pid} • ${AREA_LABEL[it.area]}">
+      <div>
+        <strong>${it.pid}</strong> · ${AREA_LABEL[it.area]} <span class="mins">(${fmtHM(it.minutes)})</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-mini" data-act="programar">Programar</button>
+        <button class="btn-mini" data-act="borrar">Quitar</button>
+      </div>
+    </div>
+  `).join('');
+
+  // ← Delegado de clicks: SIEMPRE aquí, no dentro de eventReceive
+  if (!host.__wired) {
+    host.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const itemEl = btn.closest('.inbox-item');
+      if (!itemEl) return;
+
+      const id = itemEl.dataset.id;
+      const it = inbox.find(x => x.id === id);
+      if (!it) return;
+
+      if (btn.dataset.act === 'programar') {
+        openInboxScheduler(it);             // abre el modal para fijar fecha/hora/duración
+      } else if (btn.dataset.act === 'borrar') {
+        inbox = inbox.filter(x => x.id !== id); // quita de la bandeja
+        saveInbox();
+        renderInbox();
+      }
+    });
+
+    // Evitar que al hacer click/drag en los botones se inicie el drag de la ficha
+    host.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button[data-act]')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+
+    host.__wired = true;
+  }
+
+  // Drag & Drop hacia FullCalendar
+  if (window._inboxDraggable && _inboxDraggable.destroy) _inboxDraggable.destroy();
+  window._inboxDraggable = new FullCalendar.Draggable(host, {
+    itemSelector: '.inbox-item',
+    eventData: function(el){
+      const pid = el.dataset.pid, area = el.dataset.area;
+      return {
+        title: `${pid} • ${AREA_LABEL[area]}`,
+        extendedProps: { pid, area, fromInbox: true }
+      };
+    }
+  });
+}
+
+
+
+
+
+
+
+
+
+// ====== TXT ======
+function parseDuration(val){
+  if (val==null) return 0;
+  let s=String(val).trim().toLowerCase().replace(',', '.');
+  s = removeAccents(s);
+  const m1 = s.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (m1){ const h=+m1[1], m=+m1[2]; return h*60+m; }
+  const m2 = s.match(/^(\d+(?:\.\d+)?)\s*(h|hora|horas|hr|hrs)$/);
+  if (m2){ return Math.round(parseFloat(m2[1])*60); }
+  const m3 = s.match(/^(\d+(?:\.\d+)?)\s*(m|min|minuto|minutos)$/);
+  if (m3){ return Math.round(parseFloat(m3[1])); }
+  const m4 = s.match(/^(\d+(?:\.\d+)?)$/);
+  if (m4){ return Math.round(parseFloat(m4[1])); }
+  return 0;
+}
+
+// NUEVO: escoger inicio para proyecto (TXT -> UI -> semana -> visible)
+function pickStartForProject(p){
+  if (p?.startDT instanceof Date && !isNaN(p.startDT)) {
+    return new Date(p.startDT.getTime());
+  }
+  if (p?.startDate){
+    const hhmm = (p.startTime && /^\d{1,2}:\d{2}$/.test(p.startTime)) ? p.startTime : '07:00';
+    return new Date(`${p.startDate}T${hhmm}:00`);
+  }
+
+  const uiDate = document.getElementById('startDate')?.value;
+  const uiTime = document.getElementById('startTime')?.value || '07:00';
+  if (uiDate) return new Date(`${uiDate}T${uiTime}:00`);
+
+  if (p?.weekStart){
+    return new Date(`${p.weekStart}T07:00:00`);
+  }
+
+  const wsStr=document.getElementById('weekStart')?.value;
+  if (wsStr) return new Date(`${wsStr}T07:00:00`);
+
+  return mondayOf(calendar.getDate());
+}
+
+// NUEVO: parseTxtProjects acepta Inicio e InicioFecha/Hora
+function parseTxtProjects(text){
+  const lines = String(text||'').replace(/\r\n/g,'\n').split('\n');
+  const projects=[]; let cur=null;
+
+  function pushIfValid(){
+    if (!cur) return;
+    const total = Object.values(cur.areas).reduce((a,b)=>a+b,0);
+    if (cur.pid && total>0) projects.push(cur);
+  }
+  function parseIsoDate(s){ return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null; }
+  function parseHHMM(s){ return /^(\d{1,2}):(\d{2})$/.test(s) ? s.padStart(5,'0') : null; }
+  function parseDateTime(s){
+    const m = s.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})$/);
+    if (!m) return null;
+    const d = new Date(`${m[1]}T${m[2]}:00`);
+    return isNaN(d) ? null : d;
+  }
+
+  for (let raw of lines){
+    let line = raw.replace(/#.*$/,'').trim();
+    if (!line){ pushIfValid(); cur=null; continue; }
+
+    const parts=line.split(':'); if (parts.length<2) continue;
+    const keyRaw = parts[0].trim();
+    const key = removeAccents(keyRaw.toLowerCase());
+    const value = parts.slice(1).join(':').trim();
+
+    if (['proyecto','proy','pid','id'].includes(key)){
+      pushIfValid();
+      cur={
+        pid:value,
+        startDate:null,
+        startTime:null,
+        startDT:null,
+        weekStart:null,
+        areas:{corte:0,ensamble:0,cierres:0,complementos:0,calidad:0}
+      };
+      continue;
+    }
+    if (!cur) continue;
+
+    // Semana (solo con claves "semana" para evitar conflicto con "inicio")
+    if (['semana','semana_inicio','inicio_semana','week'].includes(key)){
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)){
+        const d=new Date(value+'T00:00:00');
+        const monday = mondayOf(d);
+        cur.weekStart = monday.toISOString().slice(0,10);
+      }
+      continue;
+    }
+
+    // Inicio exacto (varias variantes)
+    if (['inicio','inicioexacto','start','startdatetime','startdt','fecha inicio','fechainicio'].includes(key)){
+      const dt = parseDateTime(value);
+      const iso = parseIsoDate(value);
+      if (dt){ cur.startDT = dt; }
+      else if (iso){ cur.startDate = iso; }
+      continue;
+    }
+    if (['iniciofecha','startdate','fecha'].includes(key)){
+      const iso = parseIsoDate(value);
+      if (iso) cur.startDate = iso;
+      continue;
+    }
+    if (['iniciohora','hora','horainicio','starttime'].includes(key)){
+      const hhmm = parseHHMM(value);
+      if (hhmm) cur.startTime = hhmm;
+      continue;
+    }
+
+    // Áreas
+    const areaKey = removeAccents(key);
+    const mins = parseDuration(value);
+    if (mins<=0) continue;
+
+    if (['corte'].includes(areaKey)) cur.areas.corte += mins;
+    else if (['ensamble','remalle'].includes(areaKey)) cur.areas.ensamble += mins;
+    else if (['cierres'].includes(areaKey)) cur.areas.cierres += mins;
+    else if (['complementos','costura','tapas'].includes(areaKey)) cur.areas.complementos += mins;
+    else if (['calidad','revision','revison','empaque'].includes(areaKey)) cur.areas.calidad += mins;
+  }
+  pushIfValid();
+  return projects;
+}
+
+function scheduleProjectFromTxt(p){
+  const pid = (p.pid||'').trim(); if (!pid) return;
+  let start = pickStartForProject(p);
+  start = normalizeCursor(start);
+  calendar.gotoDate(start);
+
+  const baseStart = new Date(start.getTime());
+  for (const area of AREA_ORDER){
+    const raw = p.areas[area]||0;
+    if (raw>0){
+      const f = getAreaFactor(area);
+      const minutes = Math.round(raw * Math.max(1,f));
+      const s = new Date(baseStart.getTime());
+      scheduleBlock(pid, area, minutes, s, f);
+    }
+  }
+  saveEvents(calendar);
+  refreshProjectList();
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+
+
+function addProjectsToInbox(projects){
+  let added = 0;
+  for (const p of projects){
+    const pid = (p.pid||'').trim(); if (!pid) continue;
+    for (const area of AREA_ORDER){
+      const mins = +p.areas[area]||0;
+      if (mins > 0){
+        inbox.push({ id:newInboxId(), pid, area, minutes: mins });
+        added++;
+      }
+    }
+  }
+  saveInbox(); renderInbox();
+  return added;
+}
+
+function importFromTxt(){
+  const input = document.getElementById('txtInput');
+  const file = input?.files?.[0];
+  if (!file){ alert('Selecciona un archivo TXT.'); return; }
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const projects = parseTxtProjects(fr.result);
+      if (!projects.length){ alert('No se encontraron proyectos válidos en el TXT.'); return; }
+      const n = addProjectsToInbox(projects);
+      alert(`Importados ${projects.length} proyecto(s). ${n} fichas agregadas a la bandeja para programar.`);
+    }catch(e){
+      console.error(e);
+      alert('No se pudo procesar el TXT. Revisa el formato.');
+    }
+  };
+  fr.onerror = ()=> alert('No se pudo leer el archivo TXT.');
+  fr.readAsText(file, 'utf-8');
+}
+
+
+// Borrar / filtros
+function onClear(){
+  if (!confirm('¿Borrar todos los bloques del calendario?')) return;
+  calendar.getEvents().filter(e=>!(e.extendedProps?.bg==='lunch')).forEach(e=>e.remove());
+  addLunchBackgrounds(calendar);
+  takeSnapshot('onClear');
+  localStorage.setItem(STORAGE_KEY,'[]');
+  refreshProjectList();
+  ['corte','ensamble','cierres','complementos','calidad'].forEach(a=>{
+    const h=document.getElementById('h-'+a); if(h) h.value='';
+    const m=document.getElementById('m-'+a); if(m) m.value='';
+  });
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+function onDeleteProject(){
+  takeSnapshot('onDeleteProject');
+  const sel=document.getElementById('projectList');
+  const pid=sel?.value||'';
+  if (!pid){ alert('Selecciona un proyecto'); return; }
+  if (!confirm(`¿Eliminar todos los bloques del proyecto ${pid}?`)) return;
+
+  calendar.getEvents().forEach(e=>{
+    if (e.extendedProps?.pid===pid) e.remove();
+    else if (!e.extendedProps?.pid && parsePidFromTitle(e.title)===pid) e.remove();
+  });
+  saveEvents(calendar);
+  refreshProjectList();
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+function onDeleteArea(){
+  const area=document.getElementById('areaSelect')?.value||'';
+  if (!area){ alert('Selecciona un área'); return; }
+  if (!confirm(`¿Eliminar todos los bloques del área ${AREA_LABEL[area]}?`)) return;
+
+  calendar.getEvents().forEach(e=>{
+    const a=e.extendedProps?.area||parseAreaFromTitle(e.title)||parseAreaFromClasses(e.classNames||[]);
+    if (a===area) e.remove();
+  });
+  saveEvents(calendar);
+  refreshProjectList();
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+
+// Filtros (incluye filtro por proyecto)
+function applyFilters(){
+  const vis={
+    corte: document.getElementById('f-corte')?.checked!==false,
+    ensamble: document.getElementById('f-ensamble')?.checked!==false,
+    cierres: document.getElementById('f-cierres')?.checked!==false,
+    complementos: document.getElementById('f-complementos')?.checked!==false,
+    calidad: document.getElementById('f-calidad')?.checked!==false,
+  };
+
+    const queryRaw = document.getElementById('filterProjectInput')?.value?.trim() || '';
+  const q = removeAccents(queryRaw.toLowerCase());
+
+  calendar.getEvents().forEach(e=>{
+    if (e.extendedProps?.bg==='lunch'){ e.setProp('display','background'); return; }
+    const area = e.extendedProps?.area || parseAreaFromTitle(e.title) || parseAreaFromClasses(e.classNames||[]);
+    const pid  = e.extendedProps?.pid  || parsePidFromTitle(e.title);
+    const showArea = (area && vis[area]!==false);
+
+    const pidNorm = removeAccents(String(pid||'').toLowerCase());
+    const showPid = (!q || pidNorm.includes(q));
+
+    const show = showArea && showPid;
+    e.setProp('display', show ? 'auto' : 'none');
+  });
+
+
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+
+// Actualiza las opciones del datalist con coincidencias por "contiene"
+function updateProjectHints(part=''){
+  const dl = document.getElementById('projectHints');
+  if (!dl) return;
+  const list = (window.__projectPidList || []);
+  const q = removeAccents(String(part||'').toLowerCase());
+  const matches = list
+    .filter(pid => !q || removeAccents(pid.toLowerCase()).includes(q))
+    .slice(0, 30);
+  dl.innerHTML = matches.map(p => `<option value="${p}">`).join('');
+}
+
+
+// Migra props faltantes + refresca listas (incluye lista del filtro)
+function migrateEventsForPidAndArea(){
+  calendar.getEvents().forEach(e=>{
+    if (e.display==='background') return;
+    if (!e.extendedProps?.pid){
+      const p=parsePidFromTitle(e.title); if (p) e.setExtendedProp('pid',p);
+    }
+    if (!e.extendedProps?.area){
+      const a=parseAreaFromTitle(e.title)||parseAreaFromClasses(e.classNames||[]);
+      if (a) e.setExtendedProp('area',a);
+    }
+  });
+}
+function refreshProjectList(){
+  migrateEventsForPidAndArea();
+  const pids=Array.from(new Set(
+    calendar.getEvents()
+      .filter(e=>e.display!=='background')
+      .map(e=>e.extendedProps?.pid||parsePidFromTitle(e.title))
+      .filter(Boolean)
+  ));
+
+  const sel=document.getElementById('projectList');
+  if (sel){
+    const cur=sel.value;
+    sel.innerHTML = '<option value="">Selecciona proyecto…</option>'+pids.map(p=>`<option>${p}</option>`).join('');
+    if (pids.includes(cur)) sel.value=cur;
+  }
+
+  window.__projectPidList = pids.slice(); // guardar IDs para sugerencias
+  const input = document.getElementById('filterProjectInput');
+  updateProjectHints(input?.value || '');
+
+
+  applyFilters();
+}
+// ===== Disponibilidad integrada =====
+function setupAvailability(){
+  let host=document.getElementById('availability');
+  if (!host){
+    const panel=document.querySelector('.card.panel');
+    host=document.createElement('div'); host.id='availability';
+    panel?.appendChild(host);
+  }
+  function capacityPerDayMin(){
+    const span=(WORK_END.h*60+WORK_END.m) - (WORK_START.h*60+WORK_START.m);
+    const lunch=(LUNCH_END.h*60+LUNCH_END.m) - (LUNCH_START.h*60+LUNCH_START.m);
+    return span - lunch;
+  }
+  function dayAt(base,i){ return new Date(base.getFullYear(),base.getMonth(),base.getDate()+i); }
+  function setHMc(d,h,m){ d.setHours(h,m,0,0); return d; }
+  function daySegmentsFor(day){
+    const s1=setHMc(clone(day),WORK_START.h,WORK_START.m), e1=setHMc(clone(day),LUNCH_START.h,LUNCH_START.m);
+    const s2=setHMc(clone(day),LUNCH_END.h,LUNCH_END.m),   e2=setHMc(clone(day),WORK_END.h,WORK_END.m);
+    return [[s1,e1],[s2,e2]];
+  }
+  function intersect(a1,a2,b1,b2){ const s=a1>b1?a1:b1, e=a2<b2?a2:b2; return e>s ? [s,e] : null; }
+  function mergeIntervals(ints){
+    if (ints.length<=1) return ints.slice();
+    ints.sort((x,y)=>x[0]-y[0]);
+    const out=[ints[0].slice()];
+    for (let i=1;i<ints.length;i++){
+      const last=out[out.length-1];
+      if (ints[i][0] <= last[1]){ if (ints[i][1]>last[1]) last[1]=ints[i][1]; }
+      else out.push(ints[i].slice());
+    }
+    return out;
+  }
+  function mondayOfV(d){
+    const c=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    const day=c.getDay();
+    c.setDate(c.getDate() + (day===0 ? -6 : 1 - day));
+    return setHMc(c, WORK_START.h, WORK_START.m);
+  }
+  function computeAvailabilityWeek(){
+    if (!window.calendar) return {};
+    const base=mondayOfV(calendar.getDate()), cap=capacityPerDayMin();
+    const res={}; for (const a of AREA_ORDER) res[a]=Array(5).fill(cap);
+    const evs=calendar.getEvents().filter(e=>e.display!=='background' && e.extendedProps?.area);
+    for (const area of AREA_ORDER){
+      for (let di=0; di<5; di++){
+        const segs=daySegmentsFor(dayAt(base,di));
+        const intervals=[];
+        for (const ev of evs){
+          if (ev.extendedProps.area!==area) continue;
+          for (const [ws,we] of segs){
+            const iv=intersect(ev.start,ev.end,ws,we);
+            if (iv) intervals.push(iv);
+          }
+        }
+        const busy=mergeIntervals(intervals).reduce((acc,[s,e])=>acc+diffMin(s,e),0);
+        res[area][di]=Math.max(0, cap - Math.round(busy));
+      }
+    }
+    return res;
+  }
+  function fmt(mins){ const m=Math.max(0,Math.round(mins)); const h=Math.floor(m/60), r=m%60; return h+':'+String(r).padStart(2,'0'); }
+  function renderAvailabilityTable(){
+    const container=document.getElementById('availability');
+    if (!container || !window.calendar) return;
+    const base=mondayOf(calendar.getDate());
+    const data=computeAvailabilityWeek();
+    const headers=['Área']; 
+    for(let i=0;i<5;i++){ 
+      const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()+i); 
+      const dn=['Lun','Mar','Mié','Jue','Vie'][i]; 
+      headers.push(dn+' '+String(d.getDate()).padStart(2,'0')); 
+    } 
+    headers.push('Total');
+
+    let html='<table class="avail"><thead><tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+    for (const area of AREA_ORDER){
+      const cells=data[area]||Array(5).fill(0);
+      const total=cells.reduce((a,b)=>a+b,0);
+      html+=`<tr><td><span class="badge-pill">${AREA_LABEL[area]}</span></td>`;
+      for (const v of cells) html+=`<td>${fmt(v)}</td>`;
+      html+=`<td><strong>${fmt(total)}</strong></td></tr>`;
+    }
+    container.innerHTML = html + '</tbody></table>';
+  }
+  window.renderAvailabilityTable = renderAvailabilityTable;
+  const attach = ()=>{
+    if (!window.calendar || calendar.__availListenersAvail) return;
+    const onChange=()=>renderAvailabilityTable();
+    calendar.on('eventAdd',onChange);
+    calendar.on('eventChange',onChange);
+    calendar.on('eventRemove',onChange);
+    calendar.on('datesSet',onChange);
+    calendar.__availListenersAvail = true;
+    renderAvailabilityTable();
+  };
+  if (window.calendar) attach();
+  window.addEventListener('planner:init',attach);
+  window.addEventListener('load',()=>{ renderAvailabilityTable(); });
+}
+
+// ===== Init Calendar =====
+let calendar;
+window.addEventListener('load', ()=>{
+  const calEl=document.getElementById('calendar');
+  calendar=new FullCalendar.Calendar(calEl,{
+    initialView:'timeGridWeek',
+    slotMinTime:'07:00:00', slotMaxTime:'16:30:00', scrollTime:'07:00:00',
+    slotDuration:'00:15:00', snapDuration:'00:15:00', expandRows:true, height:'auto',
+    nowIndicator:true, allDaySlot:false,
+    locale:'es', firstDay:1, weekends:false,
+    businessHours:[{daysOfWeek:[1,2,3,4,5], startTime:'07:00', endTime:'16:30'}],
+    eventTimeFormat:{hour:'2-digit', minute:'2-digit'},
+    
+    editable:true,               // se puede mover
+    eventStartEditable:true,     // mover permitido
+    eventDurationEditable:false, // NO se permite cambiar duración arrastrando
+    eventResizableFromStart:false,
+    eventOverlap:true,
+      /* aceptar drops desde la bandeja */
+  droppable:true,
+  eventReceive:(info)=>{
+    const el = info.draggedEl;
+    const pid = el?.dataset?.pid;
+    takeSnapshot('eventReceive');
+    const area = el?.dataset?.area;
+    const minutes = parseInt(el?.dataset?.minutes || '0', 10);
+
+    // quitar el placeholder creado por FullCalendar
+    info.event.remove();
+
+    if (pid && area && minutes>0){
+  const start = normalizeCursor(info.date || info.event?.start || calendar.getDate());
+  if (urgentInsertChecked()){
+    insertBlockAndShift(pid, area, minutes, start, getAreaFactor(area));
+  } else {
+    scheduleBlock(pid, area, minutes, start, getAreaFactor(area));
+  }
+  // sacar la ficha de la bandeja
+  const id = el.dataset.id;
+  inbox = inbox.filter(x=>x.id!==id); saveInbox(); renderInbox();
+  saveEvents(calendar); refreshProjectList();
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+}
+
+
+    // Delegado: acciones dentro de la bandeja
+const inboxHost = document.getElementById('inbox');
+if (inboxHost && !inboxHost.__wired) {
+  inboxHost.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const itemEl = btn.closest('.inbox-item');
+    if (!itemEl) return;
+
+    const id = itemEl.dataset.id;
+    const it = inbox.find(x => x.id === id);
+    if (!it) return;
+
+    if (btn.dataset.act === 'programar') {
+      openInboxScheduler(it); // abre modal
+    } else if (btn.dataset.act === 'borrar') {
+      inbox = inbox.filter(x => x.id !== id);
+      saveInbox();
+      renderInbox();
+    }
+  });
+  inboxHost.__wired = true;
+}
+
+  },
+
+
+
+    datesSet:()=>{ addLunchBackgrounds(calendar); if(window.renderAvailabilityTable)window.renderAvailabilityTable(); },
+
+    eventDrop:(info)=>{
+      enforceRulesOnDrag(info.event);
+      const area = info.event.extendedProps?.area;
+      const cf   = info.event.extendedProps?.cf || (area ? getAreaFactor(area) : 1);
+      info.event.setExtendedProp('cf', cf);
+      saveEvents(calendar); refreshProjectList();
+      if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+    },
+    eventResize:(info)=>{
+      enforceRulesOnDrag(info.event);
+      const area = info.event.extendedProps?.area;
+      const cf   = info.event.extendedProps?.cf || (area ? getAreaFactor(area) : 1);
+      const newDur = Math.round(diffMin(info.event.start, info.event.end));
+      info.event.setExtendedProp('baseMin', Math.max(1, Math.round(newDur/Math.max(1,cf)))); 
+      info.event.setExtendedProp('cf', cf);
+      saveEvents(calendar); refreshProjectList();
+      if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+    },
+    eventClick:(info)=>{ if(info.event.extendedProps?.bg==='lunch')return; openEventEditor(info.event); }
+
+    
+
+
+  });
+
+  
+
+  addLunchBackgrounds(calendar);
+  loadEvents().forEach(e=>calendar.addEvent(e));
+  calendar.render();
+  // Reforzar nueva regla de comida (12:50) sobre eventos ya guardados
+calendar.getEvents()
+  .filter(e => e.display !== 'background')
+  .forEach(e => enforceRulesOnDrag(e));
+saveEvents(calendar);
+
+  loadInbox();
+  renderInbox();
+
+  // Inicializar historial con el estado después de cargar localStorage
+takeSnapshot('init');
+
+// Botones Deshacer/Rehacer
+document.getElementById('undoBtn')?.addEventListener('click', () => undo());
+document.getElementById('redoBtn')?.addEventListener('click', () => redo());
+updateUndoRedoButtons();
+
+// Atajos: Ctrl+Z / Ctrl+Y (Windows) y Cmd+Z / Shift+Cmd+Z (macOS)
+document.addEventListener('keydown', (e) => {
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const ctrl = isMac ? e.metaKey : e.ctrlKey;
+
+  if (ctrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
+    e.preventDefault(); undo();
+  } else if ((ctrl && e.key.toLowerCase() === 'y') || (isMac && ctrl && e.shiftKey && e.key.toLowerCase() === 'z')) {
+    e.preventDefault(); redo();
+  }
+});
+
+
+
+
+  setupAvailability();
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+  window.dispatchEvent(new CustomEvent('planner:init'));
+
+  const mondayDate = mondayOf(new Date());
+  const weekStartInput = document.getElementById('weekStart');
+  weekStartInput.value = mondayDate.toISOString().slice(0,10);
+  calendar.gotoDate(mondayDate);
+
+  const viewMode=document.getElementById('viewMode'), dayPick=document.getElementById('dayPick');
+  if (dayPick) dayPick.value=mondayDate.toISOString().slice(0,10);
+  function setViewMode(mode){
+    if (mode==='day'){
+      dayPick.disabled=false; weekStartInput.disabled=true;
+      const ds=dayPick.value||mondayDate.toISOString().slice(0,10);
+      calendar.changeView('timeGridDay');
+      calendar.gotoDate(new Date(ds+'T00:00:00'));
+    } else {
+      dayPick.disabled=true; weekStartInput.disabled=false;
+      const ws=weekStartInput.value||mondayDate.toISOString().slice(0,10);
+      calendar.changeView('timeGridWeek');
+      calendar.gotoDate(mondayOf(new Date(ws+'T00:00:00')));
+    }
+    if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+  }
+  viewMode.addEventListener('change',()=>setViewMode(viewMode.value));
+  weekStartInput.addEventListener('change',()=>{
+    if (viewMode.value==='week'){
+      calendar.gotoDate(mondayOf(new Date(weekStartInput.value+'T00:00:00')));
+    }
+  });
+  dayPick.addEventListener('change',()=>{
+    if (viewMode.value==='day' && dayPick.value){
+      calendar.gotoDate(new Date(dayPick.value+'T00:00:00'));
+    }
+  });
+
+  // Botones principales
+  document.getElementById('addBtn').addEventListener('click', onAdd);
+  document.getElementById('clearBtn').addEventListener('click', onClear);
+  document.getElementById('delProjectBtn').addEventListener('click', onDeleteProject);
+  document.getElementById('delAreaBtn').addEventListener('click', onDeleteArea);
+  document.getElementById('applyCapacityBtn').addEventListener('click', ()=>{
+    applyFilters();
+    applyCapacityToVisible(); 
+    if(window.renderAvailabilityTable)window.renderAvailabilityTable();
+  });
+  document.getElementById('applyCapacityDayBtn').addEventListener('click', ()=>{
+    applyFilters();
+    applyCapacityToDay(); 
+    if(window.renderAvailabilityTable)window.renderAvailabilityTable();
+  });
+
+  // Importar TXT
+  document.getElementById('importTxtBtn').addEventListener('click', importFromTxt);
+
+  // Colocación automática (bandeja)
+const autoBtn = document.getElementById('autoPlaceBtn');
+if (autoBtn) autoBtn.addEventListener('click', autoPlaceInboxByArea);
+
+  // Filtros
+  ['corte','ensamble','cierres','complementos','calidad'].forEach(a=>{
+    document.getElementById('f-'+a).addEventListener('change', applyFilters);
+  });
+
+   // Filtro por proyecto (input + datalist)
+  const fpInput = document.getElementById('filterProjectInput');
+  const fpClear = document.getElementById('clearProjectFilterBtn');
+
+  if (fpInput){
+    fpInput.addEventListener('input', ()=>{
+      updateProjectHints(fpInput.value);
+      applyFilters();
+    });
+  }
+  if (fpClear){
+    fpClear.addEventListener('click', ()=>{
+      const el = document.getElementById('filterProjectInput');
+      if (el){
+        el.value = '';
+        updateProjectHints('');
+        applyFilters();
+      }
+    });
+  }
+
+
+
+// ===== Enlaces del editor (modal) =====
+  const eeCancel  = document.getElementById('ee-cancel');
+  const eeSave    = document.getElementById('ee-save');
+  const eeDelete  = document.getElementById('ee-delete');
+  const eeModal   = document.getElementById('eventEditor');
+
+  if (eeCancel) eeCancel.addEventListener('click', () => closeEventEditor());
+  if (eeSave)   eeSave.addEventListener('click', () => saveEventEditor());
+  if (eeDelete) eeDelete.addEventListener('click', () => deleteEventEditor());
+
+  // Cerrar al hacer click en el fondo del modal
+  if (eeModal) {
+    eeModal.addEventListener('click', (e) => {
+      if (e.target === eeModal) closeEventEditor();
+    });
+  }
+
+  // Cerrar con ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && eeModal?.classList.contains('show')) {
+      closeEventEditor();
+    }
+  });
+
+
+
+
+  applyFilters();
+  refreshProjectList();
+});
+
+// ===== Editor =====
+let __editingEvent=null;
+let __pendingInboxItem = null;
+
+function openEventEditor(ev){
+  __editingEvent=ev;
+  const pid=ev.extendedProps?.pid||parsePidFromTitle(ev.title);
+  const area=ev.extendedProps?.area||parseAreaFromTitle(ev.title)||parseAreaFromClasses(ev.classNames||[]);
+  const start=ev.start, dur=Math.max(1,Math.round(diffMin(start,ev.end)));
+  document.getElementById('ee-pid').value=pid||'';
+  document.getElementById('ee-area').value=AREA_LABEL[area]||'';
+  document.getElementById('ee-date').value=start.toISOString().slice(0,10);
+  document.getElementById('ee-time').value=start.toTimeString().slice(0,5);
+  document.getElementById('ee-hours').value=Math.floor(dur/60);
+  document.getElementById('ee-mins').value=dur%60;
+  document.getElementById('eventEditor').classList.add('show');
+}
+
+function openInboxScheduler(item){
+  __editingEvent = null;            // no hay evento existente aún
+  __pendingInboxItem = item;        // guardamos la ficha
+
+  const pid = item.pid;
+  const area = item.area;
+  const minutes = parseInt(item.minutes, 10) || 0;
+
+  // Sugerir inicio desde los campos del panel / semana
+  let start = pickStartForProject({
+    startDate: document.getElementById('startDate')?.value || null,
+    startTime: document.getElementById('startTime')?.value || '07:00',
+    weekStart: document.getElementById('weekStart')?.value || null
+  });
+
+  // Rellenar el modal
+  document.getElementById('ee-pid').value  = pid;
+  document.getElementById('ee-area').value = AREA_LABEL[area] || '';
+  document.getElementById('ee-date').value = start.toISOString().slice(0,10);
+  document.getElementById('ee-time').value = String(start.getHours()).padStart(2,'0')+':'+String(start.getMinutes()).padStart(2,'0');
+  document.getElementById('ee-hours').value = Math.floor(minutes/60);
+  document.getElementById('ee-mins').value  = minutes%60;
+
+  // Deshabilitar "Eliminar" cuando es ficha pendiente
+  const delBtn = document.getElementById('ee-delete');
+  if (delBtn){ delBtn.disabled = true; delBtn.style.opacity = '0.5'; }
+
+  document.getElementById('eventEditor').classList.add('show');
+}
+
+
+function closeEventEditor(){
+  document.getElementById('eventEditor').classList.remove('show');
+  __editingEvent = null;
+  __pendingInboxItem = null;
+  const delBtn = document.getElementById('ee-delete');
+  if (delBtn){ delBtn.disabled = false; delBtn.style.opacity = ''; }
+}
+
+
+function saveEventEditor(){
+  const date = document.getElementById('ee-date').value;
+  const time = document.getElementById('ee-time').value || '07:00';
+  const h = +document.getElementById('ee-hours').value || 0;
+  const m = +document.getElementById('ee-mins').value  || 0;
+
+  let start = new Date(`${date}T${time}:00`);
+  let dur   = Math.max(1, h*60 + m);
+
+  if (!WORK_DAYS.includes(start.getDay()) || !withinWorkHours(start) || isLunch(start)){
+    start = normalizeCursor(start);
+  }
+
+  // MODO A: editar un evento existente
+  if (__editingEvent){
+    __editingEvent.setStart(start);
+    __editingEvent.setEnd(addMin(start, dur));
+    const area = __editingEvent.extendedProps?.area
+              || parseAreaFromTitle(__editingEvent.title)
+              || parseAreaFromClasses(__editingEvent.classNames||[]);
+    const cf = __editingEvent.extendedProps?.cf || getAreaFactor(area);
+    __editingEvent.setExtendedProp('baseMin', Math.max(1, Math.round(dur/Math.max(1,cf))));
+    __editingEvent.setExtendedProp('cf', cf);
+    enforceRulesOnDrag(__editingEvent);
+    saveEvents(calendar);
+    if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+    closeEventEditor();
+    refreshProjectList();
+    return;
+  }
+
+  // MODO B: viene desde la BANDEJA (ficha pendiente)
+if (__pendingInboxItem){
+  const pid  = __pendingInboxItem.pid;
+  const area = __pendingInboxItem.area;
+  const f    = getAreaFactor(area);
+
+  const dur = Math.max(1, h*60 + m);   // duración configurada en el editor
+
+  if (urgentInsertChecked()){
+    insertBlockAndShift(pid, area, Math.round(dur), start, f);
+  } else {
+    scheduleBlockArea(pid, area, Math.round(dur), start, f);
+  }
+
+  // quitar la ficha de la bandeja
+  inbox = inbox.filter(x => x.id !== __pendingInboxItem.id);
+  saveInbox(); renderInbox();
+
+  saveEvents(calendar);
+  if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+  closeEventEditor();
+  refreshProjectList();
+  return;
+}
+
+}
+
+
+
+
+function deleteEventEditor(){
+  if (!__editingEvent) return;
+  if (confirm('¿Eliminar este bloque?')){
+    __editingEvent.remove();
+    saveEvents(calendar);
+    if (window.renderAvailabilityTable) window.renderAvailabilityTable();
+    refreshProjectList();
+    closeEventEditor();
+  }
+}
+
+// Capacidad
+function applyCapacityToVisible(){
+  const evs = calendar.getEvents().filter(e=>e.display!=='background');
+  for (const ev of evs){
+    const area=ev.extendedProps?.area||parseAreaFromTitle(ev.title)||parseAreaFromClasses(ev.classNames||[]);
+    if (!area) continue;
+    const cf=Math.max(1, getAreaFactor(area));
+    const base=ev.extendedProps?.baseMin || Math.round(diffMin(ev.start,ev.end)/cf);
+    const newDur=Math.max(1, Math.round(base*cf));
+    ev.setEnd(addMin(ev.start,newDur));
+    ev.setExtendedProp('baseMin',base);
+    ev.setExtendedProp('cf', cf);
+    enforceRulesOnDrag(ev);
+  }
+  saveEvents(calendar);
+}
+function applyCapacityToDay(){
+  // Determinar el día objetivo
+  let target;
+  const view = calendar.view;
+  if (view && view.type === 'timeGridDay') {
+    target = calendar.getDate(); // día visible en la vista día
+  } else {
+    const dp = document.getElementById('dayPick')?.value;
+    target = dp ? new Date(dp + 'T00:00:00') : calendar.getDate(); // fallback
+  }
+  const targetStr = target.toDateString();
+
+  // Aplicar capacidad a eventos que empiezan ese día
+  const evs = calendar.getEvents().filter(e =>
+    e.display!=='background' &&
+    e.start && e.start.toDateString() === targetStr
+  );
+
+  for (const ev of evs){
+    const area = ev.extendedProps?.area
+      || parseAreaFromTitle(ev.title)
+      || parseAreaFromClasses(ev.classNames||[]);
+    if (!area) continue;
+
+    const cf   = Math.max(1, getAreaFactor(area));
+    const base = ev.extendedProps?.baseMin || Math.round(diffMin(ev.start, ev.end) / cf);
+    const newDur = Math.max(1, Math.round(base * cf));
+
+    ev.setEnd(addMin(ev.start, newDur));
+    ev.setExtendedProp('baseMin', base);
+    ev.setExtendedProp('cf', cf);
+    enforceRulesOnDrag(ev);
+  }
+  saveEvents(calendar);
+}
+
+</script>
+
+<!-- Booster de primer pintado -->
+<script>
+(function(){
+  function paint(){
+    if (typeof window.renderAvailabilityTable === 'function') {
+      try { window.renderAvailabilityTable(); } catch(e){ console.error(e); }
+    }
+  }
+  window.addEventListener('planner:init', paint);
+  window.addEventListener('load', paint);
+  setTimeout(paint, 400);
+  setTimeout(paint, 1200);
+})();
+</script>
+</body>
+</html>
+
